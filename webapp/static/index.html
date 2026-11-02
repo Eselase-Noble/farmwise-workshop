@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FarmWise — Smart Farming Assistant</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="wrap masthead__row">
+      <div class="wordmark">
+        <span class="wordmark__mark">Farm<span class="wordmark__thin">Wise</span></span>
+        <span class="wordmark__tag">A smart farming assistant</span>
+      </div>
+      <nav class="masthead__nav" aria-label="features">
+        <a href="#crop">Crop model</a>
+        <a href="#qa">Farming Q&amp;A</a>
+      </nav>
+    </div>
+    <div class="partners">
+      <div class="wrap partners__row">
+        <span class="partners__label">Built with</span>
+        <span class="partners__list">
+          <span>Africode&nbsp;Lab</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span>Accra&nbsp;Digital&nbsp;Skills</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span>Mobile&nbsp;Web&nbsp;Ghana</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+
+    <!-- ============ Crop recommendation ============ -->
+    <section class="card" id="crop">
+      <div class="card__head">
+        <span class="card__num">01</span>
+        <h2 class="card__title">Crop Recommendation</h2>
+        <p class="card__lede">Enter a field's soil and weather readings. A trained
+          model suggests the best crop, how confident it is, and the runners-up.</p>
+      </div>
+
+      <form id="crop-form" class="form">
+        <div class="field-grid">
+          <label class="field">
+            <span class="field__label">Nitrogen <em>N</em></span>
+            <input type="number" step="any" name="N" value="90" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Phosphorus <em>P</em></span>
+            <input type="number" step="any" name="P" value="42" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Potassium <em>K</em></span>
+            <input type="number" step="any" name="K" value="43" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Temperature <em>°C</em></span>
+            <input type="number" step="any" name="temperature" value="21" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Humidity <em>%</em></span>
+            <input type="number" step="any" name="humidity" value="82" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Soil pH</span>
+            <input type="number" step="any" name="ph" value="6.5" required />
+          </label>
+          <label class="field field--wide">
+            <span class="field__label">Rainfall <em>mm</em></span>
+            <input type="number" step="any" name="rainfall" value="200" required />
+          </label>
+        </div>
+        <button type="submit" class="btn">Recommend crop</button>
+      </form>
+
+      <div id="crop-result" class="result" hidden>
+        <div class="verdict">
+          <span class="verdict__label">Recommended crop</span>
+          <span class="verdict__crop" id="crop-name">—</span>
+        </div>
+        <div class="confidence">
+          <div class="confidence__meta">
+            <span>Confidence</span><span id="crop-conf">—</span>
+          </div>
+          <div class="bar"><div class="bar__fill" id="crop-bar"></div></div>
+        </div>
+        <ul class="ranks" id="crop-top3"></ul>
+        <div class="notice" id="crop-ood" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============ Farming Q&A ============ -->
+    <section class="card" id="qa">
+      <div class="card__head">
+        <span class="card__num">02</span>
+        <h2 class="card__title">Farming Q&amp;A</h2>
+        <p class="card__lede">Ask a question. Grounded mode answers only from the
+          farming guides and cites them; plain mode asks the model alone.</p>
+      </div>
+
+      <form id="qa-form" class="form">
+        <label class="field">
+          <span class="field__label">Your question</span>
+          <textarea name="question" rows="3" required
+            placeholder="e.g. What is the critical weed-free period for maize?">What is the critical weed-free period for maize?</textarea>
+        </label>
+
+        <div class="segmented" role="radiogroup" aria-label="answer mode">
+          <input type="radio" name="mode" id="mode-rag" value="rag" checked />
+          <label for="mode-rag">Grounded (RAG)</label>
+          <input type="radio" name="mode" id="mode-plain" value="plain" />
+          <label for="mode-plain">Plain model</label>
+        </div>
+
+        <button type="submit" class="btn">Ask</button>
+      </form>
+
+      <div id="qa-result" class="result" hidden>
+        <span class="answer__mode" id="qa-mode">—</span>
+        <p class="answer" id="qa-answer">—</p>
+        <div class="sources" id="qa-sources" hidden>
+          <span class="sources__label">Sources</span>
+          <ul id="qa-source-list"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__row">
+      <p class="footer__orgs">
+        <strong>Africode Lab</strong> &nbsp;·&nbsp;
+        <strong>Accra Digital Skills</strong> &nbsp;·&nbsp;
+        <strong>Mobile Web Ghana</strong>
+      </p>
+      <p class="footer__note">FarmWise runs entirely on local models. Recommendations
+        are a starting point, not a substitute for local agronomic advice.</p>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

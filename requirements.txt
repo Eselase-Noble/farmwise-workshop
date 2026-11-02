@@ -20,5 +20,9 @@ ipykernel>=6.29
 nbclient>=0.10
 nbconvert>=7.16
 
+# --- web app (Session 2) ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
 # --- tests ---
 pytest>=8.0

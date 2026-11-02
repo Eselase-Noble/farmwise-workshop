@@ -1,157 +1,72 @@
-# 🌱 FarmWise — a smart farming assistant
+# FarmWise, Session 2 web app
 
-Demo project for **Session 1** of a 2-hour workshop at the **Africa Digital
-Skills Conference**. Everything runs **locally and offline** (once set up).
+This is the `se` branch. It takes the Session 1 FarmWise package and puts a web
+interface in front of it, so the crop model and the farming assistant can be used
+from a browser instead of a notebook. The point of Session 2 is to make the same
+work shareable: nothing from Session 1 is rewritten, it is reused.
 
-Two AI features:
+Built with Africode Lab, Accra Digital Skills, and Mobile Web Ghana.
 
-1. **Crop recommendation** — a classic ML model (Random Forest) that recommends a
-   crop from soil and weather inputs (N, P, K, temperature, humidity, pH, rainfall).
-2. **Farming Q&A** — a **RAG** assistant that answers farmers' questions from
-   farming-guide documents using a local LLM (via Ollama), with citations.
+## What is here
 
-The `farmwise/` package is deliberately written for **reuse**: Session 2 (branch
-`se`) wraps the same functions in a **FastAPI** backend with **PostgreSQL +
-pgvector** and a **Streamlit** app — without rewriting the core.
+* A FastAPI backend in `webapp/main.py` that wraps the existing functions:
+  * `POST /api/predict` calls `farmwise.ml.predict.predict_crop`
+  * `POST /api/ask` calls `farmwise.rag.assistant.ask` (grounded, with sources)
+    or `ask_without_rag` (the plain model), depending on the request
+* A single black and white web page in `webapp/static/` with two panels, one for
+  crop recommendation and one for farming questions.
+* Everything from Session 1 (the `farmwise` package, notebooks, scripts, tests).
 
-> **Presenter?** See **[DEMO.md](DEMO.md)** for the timed runbook, talking points,
-> comparison questions, and a fallback for every step.
+## Running it
 
----
-
-## Prerequisites
-
-- Python **3.11+**
-- [Ollama](https://ollama.com) (local LLM runtime)
-- ~3 GB disk for the two models
-
-## Setup
+You need the Session 1 setup first: Ollama running with the two models pulled,
+the dataset in `data/raw/`, a trained model, and the guides indexed.
 
 ```bash
-# 1. Create the environment and install dependencies
-uv venv && source .venv/bin/activate
-uv pip install -r requirements.txt
-#   (plain pip works too: python -m venv .venv && pip install -r requirements.txt)
-
-# 2. Start Ollama and pull the models (one-time, ~2.3 GB)
-ollama serve                       # leave running in its own terminal
+# from Session 1, if you have not already done it
+pip install -r requirements.txt
+ollama serve
 ollama pull llama3.2:3b
 ollama pull nomic-embed-text
-
-# 3. Add the crop dataset  ->  data/raw/Crop_recommendation.csv
-#    (see data/raw/README.md for the download link)
-
-# 4. Train the model and build the RAG index
 python scripts/train_model.py
 python scripts/build_index.py
 
-# 5. Verify everything is ready (every line should say [ OK ])
-python scripts/check_setup.py
-
-# 6. Open the notebooks
-jupyter lab
+# start the web app
+uvicorn webapp.main:app --reload
 ```
 
-## The three notebooks
+Then open http://localhost:8000 in a browser. The crop form is prefilled with a
+sample field so you can try it in one click, and the question box starts with a
+maize question. Switch the Q&A mode between Grounded and Plain to see the
+difference between an answer backed by the guides and an answer from the model
+alone.
 
-| Notebook | What it shows |
-|----------|---------------|
-| `notebooks/01_crop_recommendation.ipynb` | Explore data → train RF (+ baseline) → evaluate → predict → save |
-| `notebooks/02_rag_farming_assistant.ipynb` | Build RAG step by step; plain LLM **vs** RAG, side by side |
-| `notebooks/03_responsible_ai.ipynb` | Data provenance, out-of-distribution flags, confidence, hallucination |
-
-Notebooks are committed **with their outputs saved** so they double as a backup
-if anything misbehaves live.
-
-## Using the package directly
-
-```python
-# Crop recommendation — plain typed function, FastAPI-ready
-from farmwise.ml.predict import predict_crop, CropFeatures
-
-pred = predict_crop(CropFeatures(N=90, P=42, K=43, temperature=21,
-                                 humidity=82, ph=6.5, rainfall=200))
-print(pred.crop, pred.confidence, pred.top3, pred.out_of_distribution)
-
-# Farming Q&A — two entry points, one typed answer shape
-from farmwise.rag.assistant import ask, ask_without_rag
-
-ask_without_rag("What is maize?")          # bare LLM, no sources
-answer = ask("How much nitrogen for maize?")  # RAG, grounded + cited
-print(answer.answer, [s.source for s in answer.sources])
-```
-
-## Configuration
-
-All knobs are environment variables with sensible defaults (see
-`farmwise/config.py`):
-
-| Variable | Default |
-|----------|---------|
-| `FARMWISE_LLM_MODEL` | `llama3.2:3b` |
-| `FARMWISE_EMBEDDING_MODEL` | `nomic-embed-text` |
-| `FARMWISE_TOP_K` | `3` |
-| `FARMWISE_CHUNK_SIZE` / `FARMWISE_CHUNK_OVERLAP` | `800` / `150` |
-| `FARMWISE_MAX_TOKENS` | `256` |
-| `OLLAMA_HOST` | `http://localhost:11434` |
-
-## Project layout
+## How it talks to the core
 
 ```
-farmwise/            reusable package (Session 2 imports this)
-  config.py          paths, model names, chunk size, top_k — via env vars
-  ml/
-    data.py          load + validate the crop dataset
-    train.py         train, evaluate, save model + metadata
-    predict.py       predict_crop(inputs) -> crop, confidence, top-3, OOD flag
-  rag/
-    loader.py        load .pdf/.txt/.md guides
-    chunker.py       simple, explainable chunking with overlap
-    embeddings.py    embeddings via Ollama (+ Chroma embedding function)
-    vector_store.py  backend-agnostic VectorStore ABC + ChromaVectorStore
-    indexer.py       load -> chunk -> embed -> store pipeline
-    assistant.py     ask() (RAG) and ask_without_rag() (bare LLM)
-  llm/
-    client.py        thin Ollama wrapper (clear error if not running)
-notebooks/           the three live demos (committed with outputs)
-scripts/             train_model.py · build_index.py · check_setup.py
-data/
-  raw/               crop dataset CSV (you download it; git-ignored)
-  guides/            farming guides (sample .md files for testing)
-models/              saved model + metadata JSON
-tests/               pytest suite (ML + RAG, runs offline)
-DEMO.md              presenter runbook
+browser  ->  FastAPI (webapp/main.py)  ->  farmwise package
+             /api/predict              ->  predict_crop(CropFeatures)
+             /api/ask (grounded)       ->  ask(question)
+             /api/ask (plain)          ->  ask_without_rag(question)
 ```
 
-## Design for Session 2 reuse
+The web layer holds no AI logic of its own. It validates the request, calls the
+function, and returns the typed result as JSON. That is exactly why Session 1 was
+written with plain typed functions and a backend agnostic vector store.
 
-- **`VectorStore` is backend-agnostic** (`add / search / count / reset`), so a
-  `PgVectorStore` (pgvector) drops in without touching `assistant.py`.
-- **`predict_crop` and `ask` are plain typed functions** (dataclasses in/out), so
-  FastAPI routes can wrap them directly.
-- **Model metadata is saved alongside the model** (feature names, classes,
-  accuracy, training date, dataset provenance, feature ranges).
+## What comes next on this branch
 
-## Tests
+The vector store is still the local ChromaDB from Session 1. Because the store
+sits behind a small interface (add, search, count, reset), the planned next step
+is a PostgreSQL with pgvector implementation that drops in without changing the
+assistant or this web app. A Streamlit version of the same two panels is also a
+natural addition for people who prefer it.
 
-```bash
-python -m pytest        # 25 tests, fully offline (Ollama mocked)
-```
+## A note on trust
 
-## ⚠️ Responsible-AI note
+The crop dataset was not collected in Ghana, so the model flags inputs that fall
+outside its training range, and the Q&A assistant only answers from the supplied
+guides and says it does not know when they do not cover a question. The sample
+guides are for testing only and are not real agronomic advice.
 
-The crop dataset's collection location is undocumented and is widely understood
-to reflect **Indian** conditions — it is **not validated for Ghana**. The model
-flags out-of-distribution inputs, and notebook 03 explores what this means. The
-guide documents shipped here are **SAMPLES for testing only, not agronomic
-advice** — replace them with real MoFA/FAO materials before presenting.
-
-## Branches
-
-- **`ai`** — Session 1 (this project)
-- **`se`** — Session 2 (FastAPI + PostgreSQL/pgvector + Streamlit), built later
-- **`java`** — a full Java port of FarmWise
-
-## License
-
-MIT — © Eselase-Noble
+© Eselase-Noble. MIT License.
