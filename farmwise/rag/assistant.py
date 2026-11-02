@@ -72,8 +72,10 @@ RAG_SYSTEM_PROMPT = (
     "Region. "
     "If the passages contain nothing relevant to the question, reply exactly: "
     "\"I don't know based on the farming guides provided.\" "
-    "Do not add agronomic facts that are not supported by the passages. Keep the "
-    "answer short, and mention which source(s) the answer came from."
+    "Do not add agronomic facts that are not supported by the passages. "
+    "Answer in short, plain prose. Do NOT put citation markers such as [1] or [2] "
+    "in your answer, and do NOT name the source files or write phrases like "
+    "'according to the guide'; the sources are listed separately for the reader."
 )
 
 
