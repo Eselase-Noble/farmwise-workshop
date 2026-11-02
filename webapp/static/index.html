@@ -3,185 +3,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FarmWise — Smart Farming Assistant</title>
+  <title>FarmWise — Crop recommendation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
 
-  <header class="masthead">
-    <div class="wrap masthead__row">
-      <div class="wordmark">
-        <span class="wordmark__mark">Farm<span class="wordmark__thin">Wise</span></span>
-        <span class="wordmark__tag">A smart farming assistant</span>
-      </div>
-      <nav class="masthead__nav" aria-label="features">
-        <a href="#crop">Crop model</a>
-        <a href="#qa">Farming Q&amp;A</a>
+  <header class="nav">
+    <div class="wrap nav__row">
+      <a class="brand" href="/">
+        <span class="brand__logo">F</span>
+        <span class="brand__name">Farm<span>Wise</span></span>
+      </a>
+      <nav class="nav__links">
+        <a href="/" class="is-active">Crop</a>
+        <a href="/chat">Chat</a>
+        <a href="/knowledge">Knowledge base</a>
       </nav>
-    </div>
-    <div class="partners">
-      <div class="wrap partners__row">
-        <span class="partners__label">Built with</span>
-        <span class="partners__list">
-          <span>Africode&nbsp;Lab</span>
-          <span class="dot" aria-hidden="true"></span>
-          <span>Accra&nbsp;Digital&nbsp;Skills</span>
-          <span class="dot" aria-hidden="true"></span>
-          <span>Mobile&nbsp;Web&nbsp;Ghana</span>
-        </span>
-      </div>
     </div>
   </header>
 
-  <main class="wrap grid">
-
-    <!-- ============ Crop recommendation ============ -->
-    <section class="card" id="crop">
-      <div class="card__head">
-        <span class="card__num">01</span>
-        <h2 class="card__title">Crop Recommendation</h2>
-        <p class="card__lede">Enter a field's soil and weather readings. A trained
-          model suggests the best crop, how confident it is, and the runners-up.</p>
-      </div>
-
-      <form id="crop-form" class="form">
-        <div class="field-grid">
-          <label class="field">
-            <span class="field__label">Nitrogen <em>N</em></span>
-            <input type="number" step="any" name="N" value="90" required />
-          </label>
-          <label class="field">
-            <span class="field__label">Phosphorus <em>P</em></span>
-            <input type="number" step="any" name="P" value="42" required />
-          </label>
-          <label class="field">
-            <span class="field__label">Potassium <em>K</em></span>
-            <input type="number" step="any" name="K" value="43" required />
-          </label>
-          <label class="field">
-            <span class="field__label">Temperature <em>°C</em></span>
-            <input type="number" step="any" name="temperature" value="21" required />
-          </label>
-          <label class="field">
-            <span class="field__label">Humidity <em>%</em></span>
-            <input type="number" step="any" name="humidity" value="82" required />
-          </label>
-          <label class="field">
-            <span class="field__label">Soil pH</span>
-            <input type="number" step="any" name="ph" value="6.5" required />
-          </label>
-          <label class="field field--wide">
-            <span class="field__label">Rainfall <em>mm</em></span>
-            <input type="number" step="any" name="rainfall" value="200" required />
-          </label>
-        </div>
-        <button type="submit" class="btn">Recommend crop</button>
-      </form>
-
-      <div id="crop-result" class="result" hidden>
-        <div class="verdict">
-          <span class="verdict__label">Recommended crop</span>
-          <span class="verdict__crop" id="crop-name">—</span>
-        </div>
-        <div class="confidence">
-          <div class="confidence__meta">
-            <span>Confidence</span><span id="crop-conf">—</span>
-          </div>
-          <div class="bar"><div class="bar__fill" id="crop-bar"></div></div>
-        </div>
-        <ul class="ranks" id="crop-top3"></ul>
-        <div class="notice" id="crop-ood" hidden></div>
+  <main class="wrap">
+    <section class="hero">
+      <p class="hero__eyebrow">Smart farming assistant</p>
+      <h1>Pick the right crop, and get answers you can trust.</h1>
+      <p>FarmWise recommends a crop from your field's soil and weather, and answers
+        farming questions from real guides. Everything runs on local AI models.</p>
+      <div class="hero__cta">
+        <a class="btn btn--light" href="#tool">Try the crop model</a>
+        <a class="btn btn--ghost" href="/chat">Ask the assistant</a>
       </div>
     </section>
 
-    <!-- ============ Farming Q&A ============ -->
-    <section class="card" id="qa">
-      <div class="card__head">
-        <span class="card__num">02</span>
-        <h2 class="card__title">Farming Q&amp;A</h2>
-        <p class="card__lede">Ask a question. Grounded mode answers only from the
-          farming guides and cites them; plain mode asks the model alone.</p>
-      </div>
+    <section class="section card" id="tool">
+      <p class="card__eyebrow">Crop recommendation</p>
+      <h2>Enter a field's readings</h2>
+      <p class="card__lede">Seven numbers any extension officer can measure. The model
+        suggests the best crop, how confident it is, and the runners-up.</p>
 
-      <form id="qa-form" class="form">
-        <label class="field">
-          <span class="field__label">Your question</span>
-          <textarea name="question" rows="3" required
-            placeholder="e.g. What is the critical weed-free period for maize?">What is the critical weed-free period for maize?</textarea>
-        </label>
+      <div class="grid-2">
+        <form id="crop-form" class="form">
+          <div class="field-grid">
+            <label class="field"><span class="field__label">Nitrogen <em>N</em></span><input type="number" step="any" name="N" value="90" required /></label>
+            <label class="field"><span class="field__label">Phosphorus <em>P</em></span><input type="number" step="any" name="P" value="42" required /></label>
+            <label class="field"><span class="field__label">Potassium <em>K</em></span><input type="number" step="any" name="K" value="43" required /></label>
+            <label class="field"><span class="field__label">Temperature <em>°C</em></span><input type="number" step="any" name="temperature" value="21" required /></label>
+            <label class="field"><span class="field__label">Humidity <em>%</em></span><input type="number" step="any" name="humidity" value="82" required /></label>
+            <label class="field"><span class="field__label">Soil pH</span><input type="number" step="any" name="ph" value="6.5" required /></label>
+            <label class="field field--wide"><span class="field__label">Rainfall <em>mm</em></span><input type="number" step="any" name="rainfall" value="200" required /></label>
+          </div>
+          <button type="submit" class="btn">Recommend crop</button>
+        </form>
 
-        <div class="segmented" role="radiogroup" aria-label="answer mode">
-          <input type="radio" name="mode" id="mode-rag" value="rag" checked />
-          <label for="mode-rag">Grounded (RAG)</label>
-          <input type="radio" name="mode" id="mode-plain" value="plain" />
-          <label for="mode-plain">Plain model</label>
-        </div>
-
-        <button type="submit" class="btn">Ask</button>
-      </form>
-
-      <div id="qa-result" class="result" hidden>
-        <span class="answer__mode" id="qa-mode">—</span>
-        <p class="answer" id="qa-answer">—</p>
-        <div class="sources" id="qa-sources" hidden>
-          <span class="sources__label">Sources</span>
-          <ul id="qa-source-list"></ul>
+        <div id="crop-result" class="result" hidden style="margin-top:0;border-top:none;padding-top:0;">
+          <div class="verdict">
+            <span class="verdict__crop" id="crop-name">—</span>
+            <span class="chip" id="crop-chip" hidden>in range</span>
+          </div>
+          <div class="confidence">
+            <div class="confidence__meta"><span>Confidence</span><span id="crop-conf">—</span></div>
+            <div class="bar"><div class="bar__fill" id="crop-bar"></div></div>
+          </div>
+          <ul class="ranks" id="crop-top3"></ul>
+          <div class="notice" id="crop-ood" hidden></div>
         </div>
       </div>
     </section>
   </main>
 
-  <section class="wrap kb" id="kb" aria-label="knowledge base">
-    <div class="kb__head">
-      <span class="card__num">03</span>
-      <h2 class="card__title">Knowledge base</h2>
-      <p class="card__lede">The assistant only answers from what it has read. Add a
-        document or a web page here and it is chunked, embedded and added to the
-        index straight away, so new questions can be answered.</p>
-    </div>
-
-    <div class="kb__grid">
-      <form id="url-form" class="kb__add">
-        <label class="field">
-          <span class="field__label">Add from a link</span>
-          <input type="url" name="url" placeholder="https://… a guide, article or PDF" required />
-        </label>
-        <button type="submit" class="btn btn--sm">Fetch &amp; add</button>
-      </form>
-
-      <form id="file-form" class="kb__add">
-        <label class="field">
-          <span class="field__label">Upload a document (PDF, Word, Excel, CSV, HTML, text)</span>
-          <input type="file" name="file"
-                 accept=".pdf,.docx,.xlsx,.xls,.csv,.html,.htm,.txt,.md" required />
-        </label>
-        <button type="submit" class="btn btn--sm">Upload &amp; add</button>
-      </form>
-    </div>
-
-    <p class="kb__status" id="kb-status" hidden></p>
-
-    <div class="kb__sources">
-      <div class="kb__sources-head">
-        <span class="sources__label">Indexed sources</span>
-        <span class="kb__total" id="kb-total">—</span>
-      </div>
-      <ul id="kb-list" class="kb__list"><li class="kb__empty">Loading…</li></ul>
-    </div>
-  </section>
-
   <footer class="footer">
     <div class="wrap footer__row">
-      <p class="footer__orgs">
-        <strong>Africode Lab</strong> &nbsp;·&nbsp;
-        <strong>Accra Digital Skills</strong> &nbsp;·&nbsp;
-        <strong>Mobile Web Ghana</strong>
-      </p>
-      <p class="footer__note">FarmWise runs entirely on local models. Recommendations
-        are a starting point, not a substitute for local agronomic advice.</p>
+      <div class="footer__orgs">
+        <span>Africode Lab</span><span class="sep">/</span>
+        <span>Accra Digital Skills</span><span class="sep">/</span>
+        <span>Mobile Web Ghana</span>
+      </div>
+      <p class="footer__note">FarmWise runs on local AI models. Recommendations are a
+        starting point, not a substitute for local agronomic advice.</p>
     </div>
   </footer>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/crop.js"></script>
 </body>
 </html>

@@ -13,8 +13,16 @@ Built with Africode Lab, Accra Digital Skills, and Mobile Web Ghana.
   * `POST /api/predict` calls `farmwise.ml.predict.predict_crop`
   * `POST /api/ask` calls `farmwise.rag.assistant.ask` (grounded, with sources)
     or `ask_without_rag` (the plain model), depending on the request
-* A single black and white web page in `webapp/static/` with two panels, one for
-  crop recommendation and one for farming questions.
+  * `POST /api/chat` calls `farmwise.rag.assistant.chat`, a conversational version
+    that keeps the recent turns in mind so follow-up questions work
+  * `POST /api/ingest/url`, `POST /api/ingest/file`, `GET /api/sources` for the
+    knowledge base
+* Three pages in `webapp/static/`, styled after the Africa Digital Skills
+  Conference, AfricodeLab and Mobile Web Ghana (Montserrat and Inter, a navy and
+  cyan palette):
+  * `/` crop recommendation
+  * `/chat` the farming assistant chat
+  * `/knowledge` the knowledge base, on its own page
 * Everything from Session 1 (the `farmwise` package, notebooks, scripts, tests).
 
 ## Running it
@@ -87,6 +95,8 @@ browser  ->  FastAPI (webapp/main.py)  ->  farmwise package
              /api/predict              ->  predict_crop(CropFeatures)
              /api/ask (grounded)       ->  ask(question)
              /api/ask (plain)          ->  ask_without_rag(question)
+             /api/chat                 ->  chat(messages)        conversational RAG
+             /api/ingest/url|file      ->  loader + indexer      grow the knowledge base
 ```
 
 The web layer holds no AI logic of its own. It validates the request, calls the

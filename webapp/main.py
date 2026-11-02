@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from farmwise import config
 from farmwise.llm.client import OllamaError, is_ollama_running
 from farmwise.ml.predict import CropFeatures, ModelNotFoundError, predict_crop
-from farmwise.rag.assistant import ask, ask_without_rag
+from farmwise.rag.assistant import ask, ask_without_rag, chat
 from farmwise.rag.indexer import index_document, index_guides
 from farmwise.rag.loader import SUPPORTED_SUFFIXES, Document, load_file, load_url
 from farmwise.rag.vector_store import ChromaVectorStore
@@ -50,6 +50,15 @@ class QuestionIn(BaseModel):
     use_rag: bool = True
 
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatIn(BaseModel):
+    messages: list[ChatMessage] = Field(..., min_length=1)
+
+
 class UrlIn(BaseModel):
     url: str = Field(..., min_length=4)
 
@@ -69,6 +78,16 @@ def _safe_filename(name: str) -> str:
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/chat")
+def chat_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "chat.html")
+
+
+@app.get("/knowledge")
+def knowledge_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "knowledge.html")
 
 
 # --- api -------------------------------------------------------------------
@@ -104,6 +123,15 @@ def predict(inp: CropIn) -> dict:
 def ask_endpoint(inp: QuestionIn) -> dict:
     try:
         answer = ask(inp.question) if inp.use_rag else ask_without_rag(inp.question)
+    except OllamaError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    return answer.to_dict()
+
+
+@app.post("/api/chat")
+def chat_endpoint(inp: ChatIn) -> dict:
+    try:
+        answer = chat([m.model_dump() for m in inp.messages])
     except OllamaError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     return answer.to_dict()

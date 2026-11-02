@@ -164,3 +164,54 @@ def ask(
         sources=sources,
         model=model_name,
     )
+
+
+def chat(
+    messages: list[dict],
+    *,
+    store: Optional[VectorStore] = None,
+    top_k: Optional[int] = None,
+    model: Optional[str] = None,
+    max_tokens: Optional[int] = None,
+) -> RagAnswer:
+    """Conversational RAG: answer the latest message with the recent history in mind.
+
+    ``messages`` is a list of ``{"role": "user"|"assistant", "content": str}``.
+    Retrieval runs on the latest user message; the last few turns are included so
+    follow-up questions ("and in the north?") make sense. Still grounded and cited.
+    """
+    store = store or get_default_store()
+    k = top_k if top_k is not None else config.TOP_K
+    model_name = model or config.LLM_MODEL
+
+    user_turns = [m for m in messages if m.get("role") == "user"]
+    latest = user_turns[-1]["content"] if user_turns else ""
+
+    results = store.search(embed_query(latest), top_k=k)
+
+    recent = messages[-6:]
+    history = "\n".join(
+        f"{'Farmer' if m.get('role') == 'user' else 'FarmWise'}: {m.get('content', '')}"
+        for m in recent
+    )
+    context_block = build_prompt(latest, results)
+    prompt = (
+        f"Conversation so far:\n{history}\n\n"
+        f"{context_block}"
+    )
+    answer = llm_client.generate(
+        prompt, system=RAG_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
+    )
+
+    sources = [
+        SourceChunk(
+            source=r.metadata.get("source", "?"),
+            chunk_index=int(r.metadata.get("chunk_index", -1)),
+            text=r.document,
+            score=r.score,
+        )
+        for r in results
+    ]
+    return RagAnswer(
+        question=latest, answer=answer, used_context=True, sources=sources, model=model_name
+    )
