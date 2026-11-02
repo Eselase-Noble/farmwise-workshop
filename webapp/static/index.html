@@ -37,13 +37,13 @@
       </div>
     </section>
 
-    <section class="section card" id="tool">
+    <section class="section card card--center" id="tool">
       <p class="card__eyebrow">Crop recommendation</p>
       <h2>Enter a field's readings</h2>
       <p class="card__lede">Seven numbers any extension officer can measure. The model
         suggests the best crop, how confident it is, and the runners-up.</p>
 
-      <div class="grid-2">
+      <div class="crop-form-wrap">
         <form id="crop-form" class="form">
           <div class="field-grid">
             <label class="field"><span class="field__label">Nitrogen <em>N</em></span><input type="number" step="any" name="N" value="90" required /></label>
@@ -57,7 +57,7 @@
           <button type="submit" class="btn">Recommend crop</button>
         </form>
 
-        <div id="crop-result" class="result" hidden style="margin-top:0;border-top:none;padding-top:0;">
+        <div id="crop-result" class="result" hidden>
           <div class="verdict">
             <span class="verdict__crop" id="crop-name">—</span>
             <span class="chip" id="crop-chip" hidden>in range</span>

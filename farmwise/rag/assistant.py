@@ -171,36 +171,46 @@ def ask(
 def chat(
     messages: list[dict],
     *,
+    use_rag: bool = True,
     store: Optional[VectorStore] = None,
     top_k: Optional[int] = None,
     model: Optional[str] = None,
     max_tokens: Optional[int] = None,
 ) -> RagAnswer:
-    """Conversational RAG: answer the latest message with the recent history in mind.
+    """Conversational assistant with the recent history in mind.
 
     ``messages`` is a list of ``{"role": "user"|"assistant", "content": str}``.
-    Retrieval runs on the latest user message; the last few turns are included so
-    follow-up questions ("and in the north?") make sense. Still grounded and cited.
+
+    * ``use_rag=True`` (default): retrieve on the latest user message, answer only
+      from the guides, and cite the sources. Says it doesn't know when uncovered.
+    * ``use_rag=False``: the bare chatbot. Answer from the model's own knowledge
+      with no documents and no sources, so the demo can show how it may guess.
     """
-    store = store or get_default_store()
-    k = top_k if top_k is not None else config.TOP_K
     model_name = model or config.LLM_MODEL
 
     user_turns = [m for m in messages if m.get("role") == "user"]
     latest = user_turns[-1]["content"] if user_turns else ""
-
-    results = store.search(embed_query(latest), top_k=k)
 
     recent = messages[-6:]
     history = "\n".join(
         f"{'Farmer' if m.get('role') == 'user' else 'FarmWise'}: {m.get('content', '')}"
         for m in recent
     )
-    context_block = build_prompt(latest, results)
-    prompt = (
-        f"Conversation so far:\n{history}\n\n"
-        f"{context_block}"
-    )
+
+    if not use_rag:
+        prompt = f"Conversation so far:\n{history}\n\nReply as FarmWise to the farmer's last message."
+        answer = llm_client.generate(
+            prompt, system=PLAIN_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
+        )
+        return RagAnswer(
+            question=latest, answer=answer, used_context=False, sources=[], model=model_name
+        )
+
+    store = store or get_default_store()
+    k = top_k if top_k is not None else config.TOP_K
+    results = store.search(embed_query(latest), top_k=k)
+
+    prompt = f"Conversation so far:\n{history}\n\n{build_prompt(latest, results)}"
     answer = llm_client.generate(
         prompt, system=RAG_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
     )

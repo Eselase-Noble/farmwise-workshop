@@ -29,8 +29,14 @@
     <div class="chat">
       <div class="chat__head">
         <span class="chat__title">Farming assistant</span>
-        <span class="chat__hint">Grounded in the farming guides · cites its sources</span>
+        <div class="mode" role="radiogroup" aria-label="answer mode">
+          <input type="radio" name="mode" id="mode-rag" value="rag" checked />
+          <label for="mode-rag">RAG · grounded</label>
+          <input type="radio" name="mode" id="mode-bare" value="bare" />
+          <label for="mode-bare">Bare chatbot</label>
+        </div>
       </div>
+      <p class="chat__hint" id="mode-hint">Grounded in the farming guides, and it cites its sources.</p>
 
       <div class="chat__log" id="chat-log">
         <div class="msg msg--bot">
@@ -43,7 +49,7 @@
       <div class="suggest" id="suggest">
         <button class="suggest__chip">When is the best time to grow rice in the western part of Ghana?</button>
         <button class="suggest__chip">What is the critical weed-free period for maize?</button>
-        <button class="suggest__chip">How do I treat early blight on tomato?</button>
+        <button class="suggest__chip">How do I raise tilapia fish in a pond?</button>
       </div>
 
       <form class="composer" id="chat-form">

@@ -8,6 +8,21 @@ const sendBtn = document.getElementById("chat-send");
 
 const history = []; // [{role, content}]
 
+function currentMode() {
+  const el = document.querySelector('input[name="mode"]:checked');
+  return el && el.value === "bare" ? "bare" : "rag";
+}
+
+// Update the hint line when the mode changes.
+document.querySelectorAll('input[name="mode"]').forEach((r) =>
+  r.addEventListener("change", () => {
+    document.getElementById("mode-hint").textContent =
+      currentMode() === "rag"
+        ? "Grounded in the farming guides, and it cites its sources."
+        : "Bare chatbot: the model answers on its own, with no documents and no sources. It may guess.";
+  })
+);
+
 // Grow the textarea with its content.
 input.addEventListener("input", () => {
   input.style.height = "auto";
@@ -27,6 +42,7 @@ form.addEventListener("submit", async (e) => {
   const text = input.value.trim();
   if (!text) return;
 
+  const useRag = currentMode() === "rag";
   addMessage("user", text);
   history.push({ role: "user", content: text });
   input.value = "";
@@ -38,14 +54,14 @@ form.addEventListener("submit", async (e) => {
     const data = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history }),
+      body: JSON.stringify({ messages: history, use_rag: useRag }),
     }).then(async (r) => {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.detail || `Request failed (${r.status})`);
       return d;
     });
     thinking.remove();
-    addMessage("bot", data.answer, data.sources, data.used_context);
+    addMessage("bot", data.answer, data.sources, data.used_context, false, useRag ? "rag" : "bare");
     history.push({ role: "assistant", content: data.answer });
   } catch (err) {
     thinking.remove();
@@ -56,9 +72,16 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-function addMessage(role, text, sources, usedContext, isError) {
+function addMessage(role, text, sources, usedContext, isError, mode) {
   const wrap = document.createElement("div");
   wrap.className = "msg " + (role === "user" ? "msg--user" : "msg--bot");
+
+  if (role === "bot" && mode) {
+    const badge = document.createElement("span");
+    badge.className = "msg__mode " + (mode === "rag" ? "is-rag" : "is-bare");
+    badge.textContent = mode === "rag" ? "RAG · grounded" : "Bare chatbot";
+    wrap.appendChild(badge);
+  }
 
   const bubble = document.createElement("div");
   bubble.className = "msg__bubble";

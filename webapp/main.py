@@ -57,6 +57,7 @@ class ChatMessage(BaseModel):
 
 class ChatIn(BaseModel):
     messages: list[ChatMessage] = Field(..., min_length=1)
+    use_rag: bool = True
 
 
 class UrlIn(BaseModel):
@@ -131,7 +132,7 @@ def ask_endpoint(inp: QuestionIn) -> dict:
 @app.post("/api/chat")
 def chat_endpoint(inp: ChatIn) -> dict:
     try:
-        answer = chat([m.model_dump() for m in inp.messages])
+        answer = chat([m.model_dump() for m in inp.messages], use_rag=inp.use_rag)
     except OllamaError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     return answer.to_dict()
