@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ChromaDB persistent store (rebuilt by scripts/build_index.py)
+/chroma/
+
+# Trained model artifacts are committed on purpose (small), so NOT ignored:
+#   models/crop_model.joblib
+#   models/crop_model_metadata.json
+
+# The crop dataset CSV is large-ish / externally sourced — keep it out of git.
+# Presenter downloads it into data/raw/ (see data/raw/README.md).
+data/raw/*.csv
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
