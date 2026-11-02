@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 
+from farmwise.llm.client import model_available
 from farmwise.rag.assistant import (
     RagAnswer,
     ask,
@@ -196,3 +197,16 @@ def test_is_ollama_running_false_on_connection_error(monkeypatch):
 
     monkeypatch.setattr(client.requests, "get", boom)
     assert client.is_ollama_running() is False
+
+
+@pytest.mark.parametrize(
+    "model, available, expected",
+    [
+        ("llama3.2:3b", ["llama3.2:3b"], True),
+        ("llama3.2:3b", ["llama3.2:1b"], False),
+        ("nomic-embed-text", ["nomic-embed-text:latest"], True),
+        ("nomic-embed-text:latest", ["nomic-embed-text"], True),
+    ],
+)
+def test_model_available_compares_tags(model, available, expected):
+    assert model_available(model, available) is expected

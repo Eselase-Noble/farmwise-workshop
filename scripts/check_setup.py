@@ -10,7 +10,11 @@ Verifies, with a clear PASS/FAIL per item:
   3. The LLM and embedding models are pulled
   4. The crop dataset is present
   5. The trained model exists
-  6. The RAG index has been built
+  6. The installed scikit-learn matches the version that saved the model
+  7. The RAG index has been built
+
+It also warns when the sample guides, which are not real agronomic advice, are
+still in the guides folder.
 """
 
 from __future__ import annotations
@@ -58,14 +62,12 @@ def _check_models(ollama_up: bool) -> bool:
     if not ollama_up:
         print(f"{WARN} skipping model check (Ollama not running)")
         return False
-    from farmwise.llm.client import list_models
+    from farmwise.llm.client import list_models, model_available
 
     available = list_models()
     ok = True
     for model in (config.LLM_MODEL, config.EMBEDDING_MODEL):
-        # match with or without an explicit :latest tag
-        present = any(m == model or m.split(":")[0] == model.split(":")[0] for m in available)
-        if present:
+        if model_available(model, available):
             print(f"{OK} model present: {model}")
         else:
             print(f"{FAIL} model missing: {model}")
@@ -99,6 +101,31 @@ def _check_index() -> bool:
     return False
 
 
+def _check_model_version() -> bool:
+    """A model saved by another scikit-learn version can warn or fail on load."""
+    import json
+
+    import sklearn
+
+    if not config.MODEL_METADATA_PATH.exists():
+        print(f"{WARN} no model metadata, skipping the scikit-learn version check")
+        return True
+    saved = json.loads(config.MODEL_METADATA_PATH.read_text()).get("sklearn_version")
+    if saved == sklearn.__version__:
+        print(f"{OK} scikit-learn {saved} matches the saved model")
+        return True
+    print(f"{FAIL} model saved with scikit-learn {saved}, installed {sklearn.__version__}")
+    print("        Fix: pip install -r requirements.txt, or python scripts/train_model.py")
+    return False
+
+
+def _warn_about_sample_guides() -> None:
+    samples = sorted(config.GUIDES_DIR.glob("sample_*"))
+    if samples:
+        names = ", ".join(path.name for path in samples)
+        print(f"{WARN} sample guides are not real agronomic advice: {names}")
+
+
 def main() -> int:
     print("FarmWise setup check\n")
     deps = _check_imports()
@@ -112,10 +139,12 @@ def main() -> int:
     model_ok = _check_path(
         "trained model", config.MODEL_PATH, "python scripts/train_model.py"
     )
+    version_ok = _check_model_version() if deps else False
     index_ok = _check_index()
+    _warn_about_sample_guides()
 
     print()
-    all_ok = all([deps, ollama_up, models_ok, dataset_ok, model_ok, index_ok])
+    all_ok = all([deps, ollama_up, models_ok, dataset_ok, model_ok, version_ok, index_ok])
     if all_ok:
         print("All checks passed — ready to demo.")
         return 0
