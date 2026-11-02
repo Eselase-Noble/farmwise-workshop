@@ -13,8 +13,8 @@ It does two things:
    guide it used.
 
 The `farmwise/` package is written so it can be reused. In Session 2 (branch
-`se`) the same functions sit behind a FastAPI backend and a web page, with
-PostgreSQL and pgvector for storage, and none of the core has to be rewritten.
+`se`) the same functions sit behind a FastAPI backend and a web app, still using
+the local ChromaDB store, and none of the core has to be rewritten.
 
 If you are presenting, read [DEMO.md](DEMO.md) first. It has the timed run order,
 the commands to run before going live, talking points for each section, the
@@ -136,7 +136,7 @@ DEMO.md              the presenter runbook
 ## Tests
 
 ```bash
-python -m pytest        # 25 tests, all offline (Ollama is mocked)
+python -m pytest        # 29 tests, all offline (Ollama is mocked)
 ```
 
 ## A note on responsible AI
@@ -150,7 +150,7 @@ agronomic advice. Replace them with real MoFA or FAO material before presenting.
 ## Branches
 
 * `ai` is Session 1, this project.
-* `se` is Session 2, the FastAPI backend and web page, built later.
+* `se` is Session 2, this project plus a FastAPI backend and web app.
 * `java` is a full Java port of FarmWise.
 
 © Eselase-Noble. MIT License.

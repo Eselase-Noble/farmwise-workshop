@@ -106,7 +106,8 @@ Talking points by section:
 - **Step 3 Embed:** show the vector length and the cosine-similarity example —
   "maize vs corn" scores high, "maize vs goat" low. *This is the whole idea.*
 - **Step 4 Store:** `store.count()` chunks in ChromaDB. Mention the
-  backend-agnostic interface → pgvector in Session 2.
+  backend-agnostic interface: a different database, such as pgvector, could
+  replace Chroma later without changing the assistant.
 - **Step 5 Retrieve:** show top-k chunks **with scores**.
 - **Step 6 Prompt:** **print the actual prompt.** "No magic — we literally paste
   the passages in and tell it to answer only from them."
@@ -162,15 +163,19 @@ once run.
 Say the limitations out loud (bottom of notebook 03), then frame Session 2:
 
 - **No memory** — each question is isolated; no conversation history.
-- **No users** — nothing is saved per person; no accounts.
-- **Not shareable** — it runs on my laptop in a notebook, not on the web.
+- **Not shareable** — it runs on my laptop in a notebook, not in a browser.
+- **A fixed knowledge base** — adding a guide means editing a folder and
+  rebuilding the index.
 
 > "In Session 2 we take this exact `farmwise` package — the same `predict_crop`
-> and `ask` functions — and wrap it in a **FastAPI** backend with **PostgreSQL +
-> pgvector** for storage and a **Streamlit** app so anyone can use it in a
-> browser. Nothing we built today gets thrown away."
+> and `ask` functions — and wrap them in a **FastAPI** backend and a **web app**
+> with a follow-up-aware chat and a page for adding documents. Nothing we built
+> today gets thrown away."
 
-Show the `se` branch on GitHub as the starting point.
+User accounts and a production database are not part of Session 2. If asked, say
+so plainly: they are the natural next steps.
+
+Show the `se` branch on GitHub, where the finished web app lives.
 
 ---
 

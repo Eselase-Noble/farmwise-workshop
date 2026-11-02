@@ -88,6 +88,18 @@ def list_models(host: Optional[str] = None) -> list[str]:
     return [m["name"] for m in resp.json().get("models", [])]
 
 
+def model_available(model: str, available: list[str]) -> bool:
+    """Return True if ``model`` is pulled. A name with no tag means ``:latest``.
+
+    Tags are compared exactly, so ``llama3.2:1b`` does not satisfy ``llama3.2:3b``.
+    """
+
+    def normalise(name: str) -> str:
+        return name if ":" in name else f"{name}:latest"
+
+    return normalise(model) in {normalise(name) for name in available}
+
+
 def generate(
     prompt: str,
     *,
