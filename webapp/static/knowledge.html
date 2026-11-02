@@ -39,6 +39,10 @@
           <h3>Add from a link</h3>
           <p>A guide, article or PDF page.</p>
           <input type="url" name="url" placeholder="https://…" required />
+          <label class="check">
+            <input type="checkbox" name="crawl" />
+            <span>Search linked pages too (follow reports and PDFs on the page)</span>
+          </label>
           <button type="submit" class="btn">Fetch &amp; add</button>
         </form>
 

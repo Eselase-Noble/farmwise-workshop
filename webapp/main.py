@@ -24,7 +24,7 @@ from farmwise import config
 from farmwise.llm.client import OllamaError, is_ollama_running
 from farmwise.ml.predict import CropFeatures, ModelNotFoundError, predict_crop
 from farmwise.rag.assistant import ask, ask_without_rag, chat
-from farmwise.rag.indexer import index_document, index_guides
+from farmwise.rag.indexer import index_document, index_guides, index_url
 from farmwise.rag.loader import SUPPORTED_SUFFIXES, Document, load_file, load_url
 from farmwise.rag.vector_store import ChromaVectorStore
 
@@ -62,6 +62,11 @@ class ChatIn(BaseModel):
 
 class UrlIn(BaseModel):
     url: str = Field(..., min_length=4)
+    crawl: bool = False
+
+
+class RemoveIn(BaseModel):
+    source: str = Field(..., min_length=1)
 
 
 SUPPORTED_UPLOAD_SUFFIXES = SUPPORTED_SUFFIXES
@@ -153,18 +158,36 @@ def sources() -> dict:
     }
 
 
+@app.post("/api/sources/remove")
+def remove_source(inp: RemoveIn) -> dict:
+    """Remove a source (all its chunks) from the index."""
+    try:
+        removed = ChromaVectorStore().delete_source(inp.source)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not remove source: {exc}")
+    return {"removed": removed, **sources()}
+
+
 @app.post("/api/ingest/url")
 def ingest_url(inp: UrlIn) -> dict:
-    """Fetch a web page or PDF by URL and add it to the RAG index."""
+    """Fetch a web page or PDF by URL and add it to the RAG index.
+
+    With ``crawl=true`` the page's relevant links (reports and PDFs) are followed
+    and indexed too, so a thin landing page still contributes real content.
+    """
     try:
-        doc = load_url(inp.url)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Could not load URL: {exc}")
-    try:
-        report = index_document(ChromaVectorStore(), doc)
+        report = index_url(ChromaVectorStore(), inp.url, crawl=inp.crawl)
     except OllamaError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
-    return {"source": doc.source, "chunks_added": report.chunks, **sources()}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not ingest URL: {exc}")
+    return {
+        "source": inp.url,
+        "pages_added": report.documents,
+        "added_sources": report.sources,
+        "chunks_added": report.chunks,
+        **sources(),
+    }
 
 
 @app.post("/api/ingest/file")

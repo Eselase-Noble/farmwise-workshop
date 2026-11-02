@@ -133,6 +133,12 @@ class ChromaVectorStore(VectorStore):
             counts[source] = counts.get(source, 0) + 1
         return counts
 
+    def delete_source(self, source: str) -> int:
+        """Remove every chunk belonging to ``source``. Returns how many were removed."""
+        before = self._collection.count()
+        self._collection.delete(where={"source": source})
+        return before - self._collection.count()
+
     def reset(self) -> None:
         self._client.delete_collection(self.collection_name)
         self._collection = self._client.get_or_create_collection(

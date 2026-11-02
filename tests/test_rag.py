@@ -54,9 +54,9 @@ def test_load_txt_and_md(tmp_path):
 
 
 def test_load_unsupported_type(tmp_path):
-    (tmp_path / "a.docx").write_text("nope")
+    (tmp_path / "a.rtf").write_text("nope")  # .rtf is not a supported type
     with pytest.raises(ValueError):
-        load_file(tmp_path / "a.docx")
+        load_file(tmp_path / "a.rtf")
 
 
 def test_load_guides_skips_readme(tmp_path):

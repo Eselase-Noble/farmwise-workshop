@@ -14,7 +14,7 @@ from typing import Optional
 from farmwise import config
 from farmwise.rag.chunker import Chunk, chunk_documents, chunk_text
 from farmwise.rag.embeddings import embed_texts
-from farmwise.rag.loader import Document, load_guides
+from farmwise.rag.loader import Document, crawl_and_load, load_guides, load_url
 from farmwise.rag.vector_store import VectorStore
 
 
@@ -107,3 +107,32 @@ def index_document(
         ],
     )
     return IndexReport(documents=1, chunks=len(chunks), sources=[document.source])
+
+
+def index_url(
+    store: VectorStore,
+    url: str,
+    *,
+    crawl: bool = False,
+    max_pages: int = 5,
+    chunk_size: Optional[int] = None,
+    overlap: Optional[int] = None,
+) -> IndexReport:
+    """Index a URL. With ``crawl=True`` the page's relevant links (reports, PDFs,
+    same-site pages) are followed and indexed too, so a thin landing page still
+    contributes the documents it points to."""
+    documents = crawl_and_load(url, max_pages=max_pages) if crawl else [load_url(url)]
+
+    total_chunks = 0
+    sources: list[str] = []
+    for doc in documents:
+        try:
+            report = index_document(store, doc, chunk_size=chunk_size, overlap=overlap)
+        except ValueError:
+            continue  # skip a source that produced no chunks
+        total_chunks += report.chunks
+        sources.append(doc.source)
+
+    if total_chunks == 0:
+        raise ValueError(f"No text could be indexed from {url}.")
+    return IndexReport(documents=len(sources), chunks=total_chunks, sources=sources)

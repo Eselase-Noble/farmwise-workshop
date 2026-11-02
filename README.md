@@ -60,10 +60,21 @@ panel where you can grow it without touching code:
   (`.docx`), Excel (`.xlsx`/`.xls`), CSV, HTML and plain text or markdown.
   Uploaded files are also saved into `data/guides/` so a full rebuild keeps them.
 
-Use credible sources for anything you demonstrate. The rice example below is
-built from a United States Department of Agriculture Foreign Agricultural Service
-report and a MoFA and IFPRI rice market brief. Government, FAO, MoFA and research
-institute material is what belongs here, not blog posts.
+Two helpers make curation easier:
+
+* Tick "Search linked pages too" when adding a link and the crawler follows the
+  page's relevant links (reports and PDFs) and indexes those as well, so a thin
+  landing page still contributes the documents it points to. Note that some
+  government sites render their report lists with JavaScript, so their PDFs are
+  not reachable this way; add those PDFs by their direct link instead.
+* Each indexed source has a Remove button, so you can prune anything that is not
+  credible.
+
+Use credible sources for anything you demonstrate. The index is built from
+United States Department of Agriculture, World Bank, MoFA (Agriculture in Ghana
+Facts and Figures), FAO and MoFA-IFPRI material. Government, FAO, MoFA and
+research institute documents are what belong here, not blog posts or paywalled
+aggregators.
 
 The panel lists every source currently indexed and its chunk count, so you can
 see the knowledge base grow. Behind the panel are three endpoints:

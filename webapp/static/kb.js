@@ -31,10 +31,35 @@ function renderSources(data) {
   }
   items.forEach((s) => {
     const li = document.createElement("li");
-    li.innerHTML = `<span class="src__name">${s.source}</span>` +
-                   `<span class="src__chunks">${s.chunks} chunk${s.chunks === 1 ? "" : "s"}</span>`;
+    const meta = document.createElement("span");
+    meta.className = "src__meta";
+    meta.innerHTML = `<span class="src__chunks">${s.chunks} chunk${s.chunks === 1 ? "" : "s"}</span>`;
+    const del = document.createElement("button");
+    del.className = "src__remove";
+    del.title = "Remove this source";
+    del.textContent = "Remove";
+    del.addEventListener("click", () => removeSource(s.source));
+    meta.appendChild(del);
+
+    const name = document.createElement("span");
+    name.className = "src__name";
+    name.textContent = s.source;
+    li.appendChild(name);
+    li.appendChild(meta);
     list.appendChild(li);
   });
+}
+
+async function removeSource(source) {
+  if (!confirm(`Remove this source from the knowledge base?\n\n${source}`)) return;
+  setStatus(`Removing ${source} …`, "busy");
+  try {
+    const data = await postJSON("/api/sources/remove", { source });
+    setStatus(`Removed ${data.removed} chunk(s) from ${source}.`, "ok");
+    renderSources(data);
+  } catch (err) {
+    setStatus(err.message, "error");
+  }
 }
 
 async function loadSources() {
@@ -50,12 +75,14 @@ document.getElementById("url-form").addEventListener("submit", async (e) => {
   const form = e.target;
   const url = form.url.value.trim();
   if (!url) return;
+  const crawl = form.crawl.checked;
   const btn = form.querySelector("button");
   btn.disabled = true;
-  setStatus(`Fetching ${url} …`, "busy");
+  setStatus(crawl ? `Searching ${url} and its linked pages …` : `Fetching ${url} …`, "busy");
   try {
-    const data = await postJSON("/api/ingest/url", { url });
-    setStatus(`Added ${data.chunks_added} chunk(s) from ${data.source}.`, "ok");
+    const data = await postJSON("/api/ingest/url", { url, crawl });
+    const pages = data.pages_added || 1;
+    setStatus(`Added ${data.chunks_added} chunk(s) from ${pages} page(s).`, "ok");
     renderSources(data);
     form.reset();
   } catch (err) {
