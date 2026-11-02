@@ -63,11 +63,17 @@ PLAIN_SYSTEM_PROMPT = (
 
 RAG_SYSTEM_PROMPT = (
     "You are FarmWise, a helpful assistant for farmers. "
-    "Answer the question using ONLY the numbered context passages provided. "
-    "If the answer is not contained in the context, reply exactly: "
+    "Answer the question using only the numbered context passages provided. "
+    "You may apply a fact about a larger area to a place inside it. In Ghana the "
+    "southern (forest and coastal) zone includes the Western, Central, Greater "
+    "Accra, Eastern, Ashanti, Bono and Volta regions, and the northern (savanna) "
+    "zone includes the Northern, Savannah, North East, Upper East and Upper West "
+    "regions; so a planting time given for 'southern Ghana' applies to the Western "
+    "Region. "
+    "If the passages contain nothing relevant to the question, reply exactly: "
     "\"I don't know based on the farming guides provided.\" "
-    "Do not use outside knowledge and do not guess. Keep the answer short, "
-    "and mention which guide(s) the answer came from."
+    "Do not add agronomic facts that are not supported by the passages. Keep the "
+    "answer short, and mention which source(s) the answer came from."
 )
 
 

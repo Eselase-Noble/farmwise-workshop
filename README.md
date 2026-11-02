@@ -41,6 +41,45 @@ maize question. Switch the Q&A mode between Grounded and Plain to see the
 difference between an answer backed by the guides and an answer from the model
 alone.
 
+## Growing the knowledge base
+
+The assistant only knows what it has read. The web page has a Knowledge base
+panel where you can grow it without touching code:
+
+* Paste a link to a guide, article or PDF and it is fetched, reduced to readable
+  text, chunked, embedded and added to the index straight away.
+* Upload a document and the same thing happens. Supported types are PDF, Word
+  (`.docx`), Excel (`.xlsx`/`.xls`), CSV, HTML and plain text or markdown.
+  Uploaded files are also saved into `data/guides/` so a full rebuild keeps them.
+
+Use credible sources for anything you demonstrate. The rice example below is
+built from a United States Department of Agriculture Foreign Agricultural Service
+report and a MoFA and IFPRI rice market brief. Government, FAO, MoFA and research
+institute material is what belongs here, not blog posts.
+
+The panel lists every source currently indexed and its chunk count, so you can
+see the knowledge base grow. Behind the panel are three endpoints:
+
+```
+POST /api/ingest/url    { "url": "..." }        add a web page or PDF
+POST /api/ingest/file   (multipart file upload) add a document
+GET  /api/sources                               list what is indexed
+```
+
+They call `farmwise.rag.loader.load_url` / `load_file` and
+`farmwise.rag.indexer.index_document`, which chunks the new source and upserts it
+into the same persistent store the assistant reads from. Re-adding a source
+replaces its chunks rather than duplicating them.
+
+A worked example: the question "When is the best time to grow rice in the western
+part of Ghana?" returns "I don't know based on the farming guides provided" with
+only the sample guides loaded. Add a public rice guide through the panel and the
+same question is answered, with the new source cited.
+
+Note: Session 2 raises the default `top_k` from 3 to 5, because real guides are
+larger than the Session 1 samples and the useful passage is often not in the top
+three. Tune it with `FARMWISE_TOP_K`.
+
 ## How it talks to the core
 
 ```

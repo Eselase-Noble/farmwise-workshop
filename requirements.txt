@@ -23,6 +23,11 @@ nbconvert>=7.16
 # --- web app (Session 2) ---
 fastapi>=0.110
 uvicorn[standard]>=0.29
+python-multipart>=0.0.9   # file uploads
+beautifulsoup4>=4.12      # extract text from web pages for ingestion
+python-docx>=1.1          # read Word .docx uploads
+openpyxl>=3.1             # read Excel .xlsx uploads
+tabulate>=0.9             # render spreadsheets as readable tables
 
 # --- tests ---
 pytest>=8.0

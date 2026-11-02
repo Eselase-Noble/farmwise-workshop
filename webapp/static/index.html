@@ -131,6 +131,45 @@
     </section>
   </main>
 
+  <section class="wrap kb" id="kb" aria-label="knowledge base">
+    <div class="kb__head">
+      <span class="card__num">03</span>
+      <h2 class="card__title">Knowledge base</h2>
+      <p class="card__lede">The assistant only answers from what it has read. Add a
+        document or a web page here and it is chunked, embedded and added to the
+        index straight away, so new questions can be answered.</p>
+    </div>
+
+    <div class="kb__grid">
+      <form id="url-form" class="kb__add">
+        <label class="field">
+          <span class="field__label">Add from a link</span>
+          <input type="url" name="url" placeholder="https://… a guide, article or PDF" required />
+        </label>
+        <button type="submit" class="btn btn--sm">Fetch &amp; add</button>
+      </form>
+
+      <form id="file-form" class="kb__add">
+        <label class="field">
+          <span class="field__label">Upload a document (PDF, Word, Excel, CSV, HTML, text)</span>
+          <input type="file" name="file"
+                 accept=".pdf,.docx,.xlsx,.xls,.csv,.html,.htm,.txt,.md" required />
+        </label>
+        <button type="submit" class="btn btn--sm">Upload &amp; add</button>
+      </form>
+    </div>
+
+    <p class="kb__status" id="kb-status" hidden></p>
+
+    <div class="kb__sources">
+      <div class="kb__sources-head">
+        <span class="sources__label">Indexed sources</span>
+        <span class="kb__total" id="kb-total">—</span>
+      </div>
+      <ul id="kb-list" class="kb__list"><li class="kb__empty">Loading…</li></ul>
+    </div>
+  </section>
+
   <footer class="footer">
     <div class="wrap footer__row">
       <p class="footer__orgs">

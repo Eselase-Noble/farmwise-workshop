@@ -122,6 +122,17 @@ class ChromaVectorStore(VectorStore):
     def count(self) -> int:
         return self._collection.count()
 
+    def distinct_sources(self) -> dict[str, int]:
+        """Return a ``{source: chunk_count}`` map of what is currently indexed."""
+        counts: dict[str, int] = {}
+        if self._collection.count() == 0:
+            return counts
+        res = self._collection.get(include=["metadatas"])
+        for meta in res.get("metadatas", []) or []:
+            source = (meta or {}).get("source", "?")
+            counts[source] = counts.get(source, 0) + 1
+        return counts
+
     def reset(self) -> None:
         self._client.delete_collection(self.collection_name)
         self._collection = self._client.get_or_create_collection(

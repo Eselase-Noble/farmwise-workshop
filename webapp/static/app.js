@@ -138,3 +138,86 @@ function renderAnswer(ans) {
     box.hidden = true;
   }
 }
+
+// ---------- Knowledge base ----------
+const kbStatus = document.getElementById("kb-status");
+
+function setStatus(msg, kind) {
+  kbStatus.hidden = false;
+  kbStatus.className = "kb__status" + (kind ? " is-" + kind : "");
+  kbStatus.textContent = msg;
+}
+
+function renderSources(data) {
+  const list = document.getElementById("kb-list");
+  const total = document.getElementById("kb-total");
+  list.innerHTML = "";
+  const items = (data && data.sources) || [];
+  total.textContent = `${data.total_chunks || 0} chunks`;
+  if (!items.length) {
+    list.innerHTML = '<li class="kb__empty">Nothing indexed yet.</li>';
+    return;
+  }
+  items.forEach((s) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="src__name">${s.source}</span>` +
+                   `<span class="src__chunks">${s.chunks} chunk${s.chunks === 1 ? "" : "s"}</span>`;
+    list.appendChild(li);
+  });
+}
+
+async function loadSources() {
+  try {
+    const data = await (await fetch("/api/sources")).json();
+    renderSources(data);
+  } catch (_) {
+    document.getElementById("kb-list").innerHTML =
+      '<li class="kb__empty">Could not load sources.</li>';
+  }
+}
+
+document.getElementById("url-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const url = form.url.value.trim();
+  if (!url) return;
+  const btn = form.querySelector("button");
+  btn.disabled = true;
+  setStatus(`Fetching ${url} …`, "busy");
+  try {
+    const data = await postJSON("/api/ingest/url", { url });
+    setStatus(`Added ${data.chunks_added} chunk(s) from ${data.source}.`);
+    renderSources(data);
+    form.reset();
+  } catch (err) {
+    setStatus(err.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("file-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const input = form.file;
+  if (!input.files.length) return;
+  const btn = form.querySelector("button");
+  btn.disabled = true;
+  setStatus(`Uploading ${input.files[0].name} …`, "busy");
+  try {
+    const fd = new FormData();
+    fd.append("file", input.files[0]);
+    const resp = await fetch("/api/ingest/file", { method: "POST", body: fd });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.detail || `Upload failed (${resp.status})`);
+    setStatus(`Added ${data.chunks_added} chunk(s) from ${data.source}.`);
+    renderSources(data);
+    form.reset();
+  } catch (err) {
+    setStatus(err.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+loadSources();

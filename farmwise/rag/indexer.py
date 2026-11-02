@@ -12,9 +12,9 @@ from pathlib import Path
 from typing import Optional
 
 from farmwise import config
-from farmwise.rag.chunker import Chunk, chunk_documents
+from farmwise.rag.chunker import Chunk, chunk_documents, chunk_text
 from farmwise.rag.embeddings import embed_texts
-from farmwise.rag.loader import load_guides
+from farmwise.rag.loader import Document, load_guides
 from farmwise.rag.vector_store import VectorStore
 
 
@@ -75,3 +75,35 @@ def index_guides(
         chunks=len(chunks),
         sources=[d.source for d in documents],
     )
+
+
+def index_document(
+    store: VectorStore,
+    document: Document,
+    *,
+    chunk_size: Optional[int] = None,
+    overlap: Optional[int] = None,
+) -> IndexReport:
+    """Add (or refresh) a single document in the store, without resetting it.
+
+    Chunks are upserted under stable ``source::index`` ids, so re-adding the same
+    source replaces its chunks instead of duplicating them. This is how the web
+    app grows the knowledge base one upload or URL at a time.
+    """
+    chunks = chunk_text(
+        document.text, source=document.source, chunk_size=chunk_size, overlap=overlap
+    )
+    if not chunks:
+        raise ValueError(f"No text to index from source '{document.source}'.")
+
+    embeddings = embed_texts([c.text for c in chunks])
+    store.add(
+        ids=[_chunk_id(c) for c in chunks],
+        documents=[c.text for c in chunks],
+        embeddings=embeddings,
+        metadatas=[
+            {"source": c.source, "chunk_index": c.chunk_index, "start": c.start, "end": c.end}
+            for c in chunks
+        ],
+    )
+    return IndexReport(documents=1, chunks=len(chunks), sources=[document.source])
