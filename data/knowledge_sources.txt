@@ -1,0 +1,31 @@
+# FarmWise knowledge base — source manifest
+#
+# One source per line (a URL to a PDF or web page). Blank lines and lines
+# starting with '#' are ignored. Rebuild the RAG index from this file with:
+#
+#     python scripts/rebuild_kb.py --reset
+#
+# These are credible, public, government / UN / research sources. The curated
+# knowledge base lives here (in git) rather than in the local chroma/ index, so
+# it can be reproduced on any machine.
+
+# USDA Foreign Agricultural Service — Ghana Grain & Feed Annual (planting calendar)
+https://apps.fas.usda.gov/newgainapi/api/Report/DownloadReportByFileName?fileName=Grain+and+Feed+Annual_Accra_Ghana_GH2026-0011.pdf
+
+# Ghana Statistical Service — 2021 Population & Housing Census, Economic Activity
+https://census2021.statsghana.gov.gh/gssmain/fileUpload/reportthemesub/2021%20PHC%20General%20Report%20Vol%203E_Economic%20Activity.pdf
+
+# MoFA + IFPRI — Ghana's Rice Market (Market Brief No. 2)
+https://cgspace.cgiar.org/server/api/core/bitstreams/3233c5ce-a7b6-4b30-8e67-d22fd34aa7b5/content
+
+# World Bank — Ghana Agriculture Sector Policy Note
+https://documents1.worldbank.org/curated/en/336541505459269020/pdf/119753-PN-P133833-PUBLIC-Ghana-Policy-Note-Ag-Sector-Review.pdf
+
+# MoFA — Agriculture in Ghana: Facts & Figures 2024
+https://srid.mofa.gov.gh/sites/default/files/2025-12/AGRICULTURE%20IN%20GHANA%20(Facts%20&%20Figures)%202024.pdf
+
+# FAO — Fertilizer use by crop in Ghana
+https://www.fao.org/4/a0013e/a0013e00.pdf
+
+# Wikipedia — Agriculture in Ghana (tertiary overview)
+https://en.wikipedia.org/wiki/Agriculture_in_Ghana

@@ -99,6 +99,21 @@ Note: Session 2 raises the default `top_k` from 3 to 5, because real guides are
 larger than the Session 1 samples and the useful passage is often not in the top
 three. Tune it with `FARMWISE_TOP_K`.
 
+## Reproducing the knowledge base on another machine
+
+The vector index (`chroma/`) is machine-local and git-ignored, so a fresh clone
+starts with an empty knowledge base. The curated sources themselves are committed
+in `data/knowledge_sources.txt`, so you can rebuild the whole index in one
+command (Ollama must be running):
+
+```bash
+python scripts/rebuild_kb.py --reset
+```
+
+That loads the sample guides and then ingests every credible source in the
+manifest (USDA, GSS, World Bank, MoFA, FAO, MoFA-IFPRI). Add a line to the
+manifest to make a new source part of the reproducible set.
+
 ## How it talks to the core
 
 ```
