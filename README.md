@@ -1,157 +1,114 @@
-# 🌱 FarmWise — a smart farming assistant
+# FarmWise (Java)
 
-Demo project for **Session 1** of a 2-hour workshop at the **Africa Digital
-Skills Conference**. Everything runs **locally and offline** (once set up).
+This is the Java version of FarmWise, the smart farming assistant from the
+Africa Digital Skills Conference workshop. It does the same two things the Python
+project does, just written for the JVM:
 
-Two AI features:
+1. **Crop recommendation.** A Random Forest model that suggests a crop from seven
+   soil and weather numbers (N, P, K, temperature, humidity, pH, rainfall).
+2. **Farming Q&A.** A retrieval based assistant that answers questions from
+   farming guides using a local language model through Ollama, and cites the
+   guide it used.
 
-1. **Crop recommendation** — a classic ML model (Random Forest) that recommends a
-   crop from soil and weather inputs (N, P, K, temperature, humidity, pH, rainfall).
-2. **Farming Q&A** — a **RAG** assistant that answers farmers' questions from
-   farming-guide documents using a local LLM (via Ollama), with citations.
+The Python project lives on the `ai` and `se` branches. This `java` branch is a
+standalone port, so you will not find any Python here.
 
-The `farmwise/` package is deliberately written for **reuse**: Session 2 (branch
-`se`) wraps the same functions in a **FastAPI** backend with **PostgreSQL +
-pgvector** and a **Streamlit** app — without rewriting the core.
+## What you need
 
-> **Presenter?** See **[DEMO.md](DEMO.md)** for the timed runbook, talking points,
-> comparison questions, and a fallback for every step.
+* Java 21 or newer and Maven 3.9+
+* [Ollama](https://ollama.com) running locally for the Q&A feature
+* The crop dataset CSV in `data/raw/` (see `data/raw/README.md`)
 
----
-
-## Prerequisites
-
-- Python **3.11+**
-- [Ollama](https://ollama.com) (local LLM runtime)
-- ~3 GB disk for the two models
-
-## Setup
+## Getting started
 
 ```bash
-# 1. Create the environment and install dependencies
-uv venv && source .venv/bin/activate
-uv pip install -r requirements.txt
-#   (plain pip works too: python -m venv .venv && pip install -r requirements.txt)
-
-# 2. Start Ollama and pull the models (one-time, ~2.3 GB)
-ollama serve                       # leave running in its own terminal
+# 1. Start Ollama and pull the two models (one time)
+ollama serve
 ollama pull llama3.2:3b
 ollama pull nomic-embed-text
 
-# 3. Add the crop dataset  ->  data/raw/Crop_recommendation.csv
-#    (see data/raw/README.md for the download link)
+# 2. Put the dataset at data/raw/Crop_recommendation.csv
 
-# 4. Train the model and build the RAG index
-python scripts/train_model.py
-python scripts/build_index.py
+# 3. Check that everything is in place
+mvn -q exec:java -Dexec.mainClass=com.farmwise.app.CheckSetup
 
-# 5. Verify everything is ready (every line should say [ OK ])
-python scripts/check_setup.py
+# 4. Train and save the crop model
+mvn -q exec:java -Dexec.mainClass=com.farmwise.app.TrainModel
 
-# 6. Open the notebooks
-jupyter lab
+# 5. Run the full demo (crop prediction + a couple of RAG questions)
+mvn -q exec:java -Dexec.mainClass=com.farmwise.app.Demo
 ```
 
-## The three notebooks
+## Using the code
 
-| Notebook | What it shows |
-|----------|---------------|
-| `notebooks/01_crop_recommendation.ipynb` | Explore data → train RF (+ baseline) → evaluate → predict → save |
-| `notebooks/02_rag_farming_assistant.ipynb` | Build RAG step by step; plain LLM **vs** RAG, side by side |
-| `notebooks/03_responsible_ai.ipynb` | Data provenance, out-of-distribution flags, confidence, hallucination |
+Crop recommendation is a plain typed call:
 
-Notebooks are committed **with their outputs saved** so they double as a backup
-if anything misbehaves live.
-
-## Using the package directly
-
-```python
-# Crop recommendation — plain typed function, FastAPI-ready
-from farmwise.ml.predict import predict_crop, CropFeatures
-
-pred = predict_crop(CropFeatures(N=90, P=42, K=43, temperature=21,
-                                 humidity=82, ph=6.5, rainfall=200))
-print(pred.crop, pred.confidence, pred.top3, pred.out_of_distribution)
-
-# Farming Q&A — two entry points, one typed answer shape
-from farmwise.rag.assistant import ask, ask_without_rag
-
-ask_without_rag("What is maize?")          # bare LLM, no sources
-answer = ask("How much nitrogen for maize?")  # RAG, grounded + cited
-print(answer.answer, [s.source for s in answer.sources])
+```java
+CropFeatures farm = new CropFeatures(90, 42, 43, 21, 82, 6.5, 200);
+CropPrediction pred = Predictor.predictCrop(farm);
+System.out.println(pred.crop() + " (" + pred.confidence() + ")");
+System.out.println("out of range? " + pred.outOfDistribution());
 ```
 
-## Configuration
+Farming Q&A has two entry points that return the same answer type. One asks the
+model directly, the other grounds the answer in the guides:
 
-All knobs are environment variables with sensible defaults (see
-`farmwise/config.py`):
+```java
+Assistant assistant = new Assistant(store, new Embeddings(), new OllamaClient());
+assistant.askWithoutRag("What is maize?");          // bare model, no sources
+RagAnswer answer = assistant.ask("How much nitrogen does maize need?");
+System.out.println(answer.answer());                // grounded, with citations
+```
 
-| Variable | Default |
-|----------|---------|
-| `FARMWISE_LLM_MODEL` | `llama3.2:3b` |
-| `FARMWISE_EMBEDDING_MODEL` | `nomic-embed-text` |
-| `FARMWISE_TOP_K` | `3` |
-| `FARMWISE_CHUNK_SIZE` / `FARMWISE_CHUNK_OVERLAP` | `800` / `150` |
-| `FARMWISE_MAX_TOKENS` | `256` |
-| `OLLAMA_HOST` | `http://localhost:11434` |
-
-## Project layout
+## How it is organised
 
 ```
-farmwise/            reusable package (Session 2 imports this)
-  config.py          paths, model names, chunk size, top_k — via env vars
+src/main/java/com/farmwise/
+  Config.java            paths, model names, chunk size and top_k from env vars
+  llm/OllamaClient.java  small HTTP client for Ollama, with clear errors
   ml/
-    data.py          load + validate the crop dataset
-    train.py         train, evaluate, save model + metadata
-    predict.py       predict_crop(inputs) -> crop, confidence, top-3, OOD flag
+    CropData.java        load and validate the dataset
+    Trainer.java         train, evaluate, save model and metadata
+    Predictor.java       predictCrop(features) with top 3 and an out of range flag
+    CropFeatures.java, CropPrediction.java
   rag/
-    loader.py        load .pdf/.txt/.md guides
-    chunker.py       simple, explainable chunking with overlap
-    embeddings.py    embeddings via Ollama (+ Chroma embedding function)
-    vector_store.py  backend-agnostic VectorStore ABC + ChromaVectorStore
-    indexer.py       load -> chunk -> embed -> store pipeline
-    assistant.py     ask() (RAG) and ask_without_rag() (bare LLM)
-  llm/
-    client.py        thin Ollama wrapper (clear error if not running)
-notebooks/           the three live demos (committed with outputs)
-scripts/             train_model.py · build_index.py · check_setup.py
-data/
-  raw/               crop dataset CSV (you download it; git-ignored)
-  guides/            farming guides (sample .md files for testing)
-models/              saved model + metadata JSON
-tests/               pytest suite (ML + RAG, runs offline)
-DEMO.md              presenter runbook
+    Loader.java          read .pdf/.txt/.md guides
+    Chunker.java         simple overlapping chunks you can explain on a slide
+    Embeddings.java      embeddings through Ollama, plus a cosine helper
+    VectorStore.java     small interface: add, search, count, reset
+    InMemoryVectorStore.java   the default backend (cosine search in memory)
+    Indexer.java         load, chunk, embed, store
+    Assistant.java       ask() and askWithoutRag()
+  app/
+    TrainModel.java, BuildIndex.java, CheckSetup.java, Demo.java
+src/test/java/com/farmwise/   JUnit tests that run offline
+data/                    guides and the dataset README (shared with the project)
 ```
 
-## Design for Session 2 reuse
+## A note on the vector store
 
-- **`VectorStore` is backend-agnostic** (`add / search / count / reset`), so a
-  `PgVectorStore` (pgvector) drops in without touching `assistant.py`.
-- **`predict_crop` and `ask` are plain typed functions** (dataclasses in/out), so
-  FastAPI routes can wrap them directly.
-- **Model metadata is saved alongside the model** (feature names, classes,
-  accuracy, training date, dataset provenance, feature ranges).
+ChromaDB does not have an official Java client, so this port uses a small in
+memory vector store that does cosine search. It implements the same
+`VectorStore` interface (add, search, count, reset), which means a PostgreSQL
+with pgvector backend can be dropped in later without touching the assistant.
+That is the same design idea the Python project uses for Session 2.
 
 ## Tests
 
 ```bash
-python -m pytest        # 25 tests, fully offline (Ollama mocked)
+mvn test
 ```
 
-## ⚠️ Responsible-AI note
+The tests cover chunking, the vector store, the loader, prompt building and the
+assistant, and they all run without Ollama or the dataset.
 
-The crop dataset's collection location is undocumented and is widely understood
-to reflect **Indian** conditions — it is **not validated for Ghana**. The model
-flags out-of-distribution inputs, and notebook 03 explores what this means. The
-guide documents shipped here are **SAMPLES for testing only, not agronomic
-advice** — replace them with real MoFA/FAO materials before presenting.
+## Responsible AI
 
-## Branches
+The crop dataset has no documented origin and is generally taken to reflect
+Indian conditions, so it is not validated for Ghana. The predictor flags inputs
+that fall outside the range it was trained on, and the Q&A assistant only answers
+from the supplied guides and says it does not know when they do not cover the
+question. The sample guides in `data/guides/` are for testing only and are not
+real agronomic advice.
 
-- **`ai`** — Session 1 (this project)
-- **`se`** — Session 2 (FastAPI + PostgreSQL/pgvector + Streamlit), built later
-- **`java`** — a full Java port of FarmWise
-
-## License
-
-MIT — © Eselase-Noble
+© Eselase-Noble. MIT License.
