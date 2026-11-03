@@ -61,6 +61,8 @@ PLAIN_SYSTEM_PROMPT = (
     "Answer concisely in plain language."
 )
 
+NO_ANSWER = "I don't know based on the farming guides provided."
+
 RAG_SYSTEM_PROMPT = (
     "You are FarmWise, a helpful assistant for farmers. "
     "Answer the question using only the numbered context passages provided. "
@@ -71,7 +73,7 @@ RAG_SYSTEM_PROMPT = (
     "regions; so a planting time given for 'southern Ghana' applies to the Western "
     "Region. "
     "If the passages contain nothing relevant to the question, reply exactly: "
-    "\"I don't know based on the farming guides provided.\" "
+    f"\"{NO_ANSWER}\" "
     "Do not add agronomic facts that are not supported by the passages. "
     "Answer in short, plain prose. Do NOT put citation markers such as [1] or [2] "
     "in your answer, and do NOT name the source files or write phrases like "
@@ -100,6 +102,61 @@ def get_default_store() -> VectorStore:
     from farmwise.rag.vector_store import ChromaVectorStore
 
     return ChromaVectorStore()
+
+
+# --- retrieval and grounding -----------------------------------------------
+
+def _retrieve(queries: list[str], store: VectorStore, top_k: int) -> list[SearchResult]:
+    """Search for each query and return the best relevant chunks across them."""
+    best: dict[str, SearchResult] = {}
+    for query in queries:
+        for result in store.search(embed_query(query), top_k=top_k):
+            if result.score < config.MIN_RELEVANCE_SCORE:
+                continue
+            current = best.get(result.id)
+            if current is None or result.score > current.score:
+                best[result.id] = result
+    return sorted(best.values(), key=lambda r: r.score, reverse=True)[:top_k]
+
+
+def _is_refusal(answer: str) -> bool:
+    normalised = answer.replace("\u2019", "'").lower()
+    return NO_ANSWER.rstrip(".").lower() in normalised
+
+
+def _grounded_answer(
+    question: str,
+    results: list[SearchResult],
+    *,
+    model_name: str,
+    max_tokens: Optional[int],
+    history: str = "",
+) -> RagAnswer:
+    """Answer from ``results``. A refusal never lists sources, as none were used."""
+    if not results:
+        return RagAnswer(
+            question=question, answer=NO_ANSWER, used_context=True, sources=[], model=model_name
+        )
+
+    prompt = build_prompt(question, results)
+    if history:
+        prompt = f"Conversation so far:\n{history}\n\n{prompt}"
+    answer = llm_client.generate(
+        prompt, system=RAG_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
+    )
+
+    sources = [] if _is_refusal(answer) else [
+        SourceChunk(
+            source=r.metadata.get("source", "?"),
+            chunk_index=int(r.metadata.get("chunk_index", -1)),
+            text=r.document,
+            score=r.score,
+        )
+        for r in results
+    ]
+    return RagAnswer(
+        question=question, answer=answer, used_context=True, sources=sources, model=model_name
+    )
 
 
 # --- entry points ----------------------------------------------------------
@@ -135,37 +192,15 @@ def ask(
     """Answer the question with RAG: retrieve, ground, cite.
 
     Returns a :class:`RagAnswer` whose ``sources`` are the chunks the answer was
-    grounded in. If the guides don't cover the question, the model is instructed
-    to say so rather than guess.
+    grounded in. If nothing relevant is found the model is not called, and if the
+    model finds the passages do not cover the question, ``sources`` is empty.
     """
     store = store or get_default_store()
     k = top_k if top_k is not None else config.TOP_K
     model_name = model or config.LLM_MODEL
 
-    query_vec = embed_query(question)
-    results = store.search(query_vec, top_k=k)
-
-    prompt = build_prompt(question, results)
-    answer = llm_client.generate(
-        prompt, system=RAG_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
-    )
-
-    sources = [
-        SourceChunk(
-            source=r.metadata.get("source", "?"),
-            chunk_index=int(r.metadata.get("chunk_index", -1)),
-            text=r.document,
-            score=r.score,
-        )
-        for r in results
-    ]
-    return RagAnswer(
-        question=question,
-        answer=answer,
-        used_context=True,
-        sources=sources,
-        model=model_name,
-    )
+    results = _retrieve([question], store, k)
+    return _grounded_answer(question, results, model_name=model_name, max_tokens=max_tokens)
 
 
 def chat(
@@ -208,22 +243,18 @@ def chat(
 
     store = store or get_default_store()
     k = top_k if top_k is not None else config.TOP_K
-    results = store.search(embed_query(latest), top_k=k)
 
-    prompt = f"Conversation so far:\n{history}\n\n{build_prompt(latest, results)}"
-    answer = llm_client.generate(
-        prompt, system=RAG_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
+    # A follow-up such as "what about in the north?" means little on its own, so
+    # also search with the previous question attached and keep the best matches.
+    queries = [latest]
+    if len(user_turns) > 1:
+        queries.append(f"{user_turns[-2]['content']} {latest}")
+    results = _retrieve(queries, store, k)
+
+    earlier = "\n".join(
+        f"{'Farmer' if m.get('role') == 'user' else 'FarmWise'}: {m.get('content', '')}"
+        for m in messages[:-1][-6:]
     )
-
-    sources = [
-        SourceChunk(
-            source=r.metadata.get("source", "?"),
-            chunk_index=int(r.metadata.get("chunk_index", -1)),
-            text=r.document,
-            score=r.score,
-        )
-        for r in results
-    ]
-    return RagAnswer(
-        question=latest, answer=answer, used_context=True, sources=sources, model=model_name
+    return _grounded_answer(
+        latest, results, model_name=model_name, max_tokens=max_tokens, history=earlier
     )

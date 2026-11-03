@@ -1,8 +1,9 @@
 """Vector store abstraction + a ChromaDB implementation.
 
 The :class:`VectorStore` interface is intentionally tiny and backend-agnostic:
-``add``, ``search``, ``count``, ``reset``. ``assistant.py`` depends only on this
-interface, so Session 2 can add a ``PgVectorStore`` (PostgreSQL + pgvector)
+``add``, ``search``, ``count``, ``reset``, plus ``distinct_sources`` and
+``delete_source`` for managing the knowledge base. ``assistant.py`` depends only
+on this interface, so Session 2 can add a ``PgVectorStore`` (PostgreSQL + pgvector)
 without changing a line of the assistant.
 
 The store receives embeddings that were computed elsewhere (see ``embeddings.py``),
@@ -50,6 +51,14 @@ class VectorStore(ABC):
     @abstractmethod
     def count(self) -> int:
         """Return how many chunks are stored."""
+
+    @abstractmethod
+    def distinct_sources(self) -> dict[str, int]:
+        """Return a ``{source: chunk_count}`` map of what is stored."""
+
+    @abstractmethod
+    def delete_source(self, source: str) -> int:
+        """Remove every chunk belonging to ``source`` and return how many went."""
 
     @abstractmethod
     def reset(self) -> None:

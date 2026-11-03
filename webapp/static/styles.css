@@ -227,6 +227,9 @@ textarea { resize: vertical; }
 .suggest__chip:hover { border-color: var(--cyan); color: var(--cyan-700); }
 
 /* ---------- Knowledge base ---------- */
+.kb-token[hidden] { display: none; }
+.kb-token { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; font-size: 13.5px; color: var(--muted); }
+.kb-token input { max-width: 360px; }
 .kb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .kb-add { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 22px; display: flex; flex-direction: column; gap: 14px; }
 .kb-add h3 { font-size: 16px; color: var(--navy); }

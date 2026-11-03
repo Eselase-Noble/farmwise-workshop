@@ -63,6 +63,18 @@ CHUNK_OVERLAP: int = int(os.getenv("FARMWISE_CHUNK_OVERLAP", "150"))    # charac
 TOP_K: int = int(os.getenv("FARMWISE_TOP_K", "5"))                      # chunks retrieved (Session 2 uses real, larger docs)
 MAX_TOKENS: int = int(os.getenv("FARMWISE_MAX_TOKENS", "256"))         # generation cap
 LLM_TEMPERATURE: float = float(os.getenv("FARMWISE_LLM_TEMPERATURE", "0.2"))
+# Chunks scoring below this cosine similarity are treated as not relevant. Tuned
+# for nomic-embed-text: covered questions scored 0.70+, off-topic ones up to 0.60.
+MIN_RELEVANCE_SCORE: float = float(os.getenv("FARMWISE_MIN_SCORE", "0.62"))
+
+# --------------------------------------------------------------------------
+# Web app limits and access
+# --------------------------------------------------------------------------
+MAX_UPLOAD_MB: int = int(os.getenv("FARMWISE_MAX_UPLOAD_MB", "25"))
+MAX_DOWNLOAD_MB: int = int(os.getenv("FARMWISE_MAX_DOWNLOAD_MB", "50"))
+# With a token set, changing the knowledge base requires it. With no token, only
+# requests made directly on this machine may change it.
+ADMIN_TOKEN: str = os.getenv("FARMWISE_ADMIN_TOKEN", "")
 
 # Vector store collection name
 COLLECTION_NAME: str = os.getenv("FARMWISE_COLLECTION", "farming_guides")
@@ -98,5 +110,8 @@ def as_dict() -> dict:
         "TOP_K": TOP_K,
         "MAX_TOKENS": MAX_TOKENS,
         "LLM_TEMPERATURE": LLM_TEMPERATURE,
+        "MIN_RELEVANCE_SCORE": MIN_RELEVANCE_SCORE,
+        "MAX_UPLOAD_MB": MAX_UPLOAD_MB,
+        "MAX_DOWNLOAD_MB": MAX_DOWNLOAD_MB,
         "COLLECTION_NAME": COLLECTION_NAME,
     }

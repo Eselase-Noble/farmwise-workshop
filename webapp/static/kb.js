@@ -2,11 +2,32 @@
 "use strict";
 
 const kbStatus = document.getElementById("kb-status");
+const kbToken = document.getElementById("kb-token");
+
+// Kept for this browser tab only, and sent only on requests that change things.
+kbToken.value = sessionStorage.getItem("farmwise-admin-token") || "";
+kbToken.addEventListener("input", () =>
+  sessionStorage.setItem("farmwise-admin-token", kbToken.value.trim())
+);
+
+function adminHeaders() {
+  const token = kbToken.value.trim();
+  return token ? { "X-Admin-Token": token } : {};
+}
+
+async function showTokenFieldIfNeeded() {
+  try {
+    const status = await (await fetch("/api/admin/status")).json();
+    document.getElementById("kb-token-wrap").hidden = !status.token_required;
+  } catch (_) {
+    // The field stays hidden; a failed change will explain itself.
+  }
+}
 
 async function postJSON(url, body) {
   const resp = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...adminHeaders() },
     body: JSON.stringify(body),
   });
   const data = await resp.json().catch(() => ({}));
@@ -103,7 +124,7 @@ document.getElementById("file-form").addEventListener("submit", async (e) => {
   try {
     const fd = new FormData();
     fd.append("file", file);
-    const resp = await fetch("/api/ingest/file", { method: "POST", body: fd });
+    const resp = await fetch("/api/ingest/file", { method: "POST", headers: adminHeaders(), body: fd });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data.detail || `Upload failed (${resp.status})`);
     setStatus(`Added ${data.chunks_added} chunk(s) from ${data.source}.`, "ok");
@@ -116,4 +137,5 @@ document.getElementById("file-form").addEventListener("submit", async (e) => {
   }
 });
 
+showTokenFieldIfNeeded();
 loadSources();

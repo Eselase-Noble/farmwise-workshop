@@ -48,6 +48,12 @@ class RecordingStore(VectorStore):
     def count(self):
         return len(self.added["ids"]) if self.added else 0
 
+    def distinct_sources(self):  # pragma: no cover
+        return {}
+
+    def delete_source(self, source):
+        return 0
+
     def reset(self):
         self.was_reset = True
 

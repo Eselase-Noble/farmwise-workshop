@@ -77,7 +77,7 @@ def main() -> int:
             print(f"  FAIL            {url[:72]}  ({exc})")
 
     print(f"\nDone: {ok}/{len(urls)} sources ingested. Index now holds {store.count()} chunks.")
-    return 0
+    return 0 if ok == len(urls) else 1
 
 
 if __name__ == "__main__":

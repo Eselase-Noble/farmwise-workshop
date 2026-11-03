@@ -58,10 +58,15 @@ def index_guides(
             "guides in there (other than README.md)?"
         )
 
+    # Embed first, so an Ollama failure cannot leave the existing index wiped.
+    embeddings = embed_texts([c.text for c in chunks])
+
     if reset:
         store.reset()
+    else:
+        for document in documents:
+            store.delete_source(document.source)
 
-    embeddings = embed_texts([c.text for c in chunks])
     ids = [_chunk_id(c) for c in chunks]
     docs = [c.text for c in chunks]
     metadatas = [
@@ -86,9 +91,9 @@ def index_document(
 ) -> IndexReport:
     """Add (or refresh) a single document in the store, without resetting it.
 
-    Chunks are upserted under stable ``source::index`` ids, so re-adding the same
-    source replaces its chunks instead of duplicating them. This is how the web
-    app grows the knowledge base one upload or URL at a time.
+    Re-adding a source removes its old chunks first, so a shorter new version
+    leaves nothing stale behind. This is how the web app grows the knowledge base
+    one upload or URL at a time.
     """
     chunks = chunk_text(
         document.text, source=document.source, chunk_size=chunk_size, overlap=overlap
@@ -97,6 +102,7 @@ def index_document(
         raise ValueError(f"No text to index from source '{document.source}'.")
 
     embeddings = embed_texts([c.text for c in chunks])
+    store.delete_source(document.source)
     store.add(
         ids=[_chunk_id(c) for c in chunks],
         documents=[c.text for c in chunks],

@@ -1,7 +1,8 @@
 # data/guides/ — Farming guide documents (RAG knowledge base)
 
 The RAG assistant answers farmer questions **only** from the documents in this
-folder. Supported formats: `.pdf`, `.txt`, `.md`.
+folder. Supported formats: `.pdf`, `.docx`, `.xlsx`, `.xls`, `.csv`, `.html`,
+`.htm`, `.txt`, `.md`.
 
 ## Real guides (presenter supplies)
 

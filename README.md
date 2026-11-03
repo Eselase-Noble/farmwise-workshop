@@ -44,15 +44,14 @@ uvicorn webapp.main:app --reload
 ```
 
 Then open http://localhost:8000 in a browser. The crop form is prefilled with a
-sample field so you can try it in one click, and the question box starts with a
-maize question. Switch the Q&A mode between Grounded and Plain to see the
-difference between an answer backed by the guides and an answer from the model
-alone.
+sample field so you can try it in one click. On the chat page, switch between
+"RAG · grounded" and "Bare chatbot" to see the difference between an answer
+backed by the guides and an answer from the model alone.
 
 ## Growing the knowledge base
 
-The assistant only knows what it has read. The web page has a Knowledge base
-panel where you can grow it without touching code:
+The assistant only knows what it has read. The `/knowledge` page lets you grow
+it without touching code:
 
 * Paste a link to a guide, article or PDF and it is fetched, reduced to readable
   text, chunked, embedded and added to the index straight away.
@@ -68,7 +67,8 @@ Two helpers make curation easier:
   government sites render their report lists with JavaScript, so their PDFs are
   not reachable this way; add those PDFs by their direct link instead.
 * Each indexed source has a Remove button, so you can prune anything that is not
-  credible.
+  credible. Remove only takes it out of the index: an uploaded file stays in
+  `data/guides/` and comes back on the next rebuild, so delete it there as well.
 
 Use credible sources for anything you demonstrate. The index is built from
 United States Department of Agriculture, World Bank, MoFA (Agriculture in Ghana
@@ -80,15 +80,18 @@ The panel lists every source currently indexed and its chunk count, so you can
 see the knowledge base grow. Behind the panel are three endpoints:
 
 ```
-POST /api/ingest/url    { "url": "..." }        add a web page or PDF
-POST /api/ingest/file   (multipart file upload) add a document
-GET  /api/sources                               list what is indexed
+POST /api/ingest/url      { "url": "..." }        add a web page or PDF
+POST /api/ingest/file     (multipart file upload) add a document
+POST /api/sources/remove  { "source": "..." }     remove a source
+GET  /api/sources                                 list what is indexed
 ```
 
 They call `farmwise.rag.loader.load_url` / `load_file` and
 `farmwise.rag.indexer.index_document`, which chunks the new source and upserts it
 into the same persistent store the assistant reads from. Re-adding a source
-replaces its chunks rather than duplicating them.
+replaces its chunks rather than duplicating them. An upload only joins
+`data/guides/` after it has been read and indexed, so a broken file is rejected
+instead of breaking the next rebuild.
 
 A worked example: the question "When is the best time to grow rice in the western
 part of Ghana?" returns "I don't know based on the farming guides provided" with
@@ -98,6 +101,43 @@ same question is answered, with the new source cited.
 Note: Session 2 raises the default `top_k` from 3 to 5, because real guides are
 larger than the Session 1 samples and the useful passage is often not in the top
 three. Tune it with `FARMWISE_TOP_K`.
+
+## Answers, relevance and follow-ups
+
+* Retrieved passages scoring under `FARMWISE_MIN_SCORE` (default 0.62, tuned for
+  `nomic-embed-text`) are dropped. If nothing relevant is left, the assistant says
+  it does not know without calling the model at all.
+* When the answer is "I don't know", no sources are shown, because none were used.
+* In the chat, a follow-up such as "how much nitrogen does it need?" is also
+  searched together with the previous question, so it finds the right guide.
+
+## Who can change the knowledge base
+
+Anyone who can reach the app can predict, ask, chat and see the source list.
+Adding or removing sources is restricted:
+
+* With no `FARMWISE_ADMIN_TOKEN` set, only a browser on the same machine can
+  change it (the default `uvicorn` setup, which listens on localhost only).
+* To share the app on a network, set a token and run on all interfaces:
+
+  ```bash
+  export FARMWISE_ADMIN_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+  uvicorn webapp.main:app --host 0.0.0.0
+  ```
+
+  The knowledge page then shows a field for the token.
+* Requests from another website are refused. Links are only fetched from public
+  addresses, never the local network. Uploads are capped at
+  `FARMWISE_MAX_UPLOAD_MB` (25) and downloads at `FARMWISE_MAX_DOWNLOAD_MB` (50).
+
+There are no user accounts and no rate limits, so put it behind a proper login
+before exposing it to the internet.
+
+## Tests
+
+```bash
+python -m pytest        # all offline: Ollama and DNS are faked
+```
 
 ## Reproducing the knowledge base on another machine
 
@@ -112,7 +152,10 @@ python scripts/rebuild_kb.py --reset
 
 That loads the sample guides and then ingests every credible source in the
 manifest (USDA, GSS, World Bank, MoFA, FAO, MoFA-IFPRI). Add a line to the
-manifest to make a new source part of the reproducible set.
+manifest to make a new source part of the reproducible set. The script exits
+with an error if any source fails, so a partial rebuild is easy to spot.
+`scripts/build_index.py` only indexes `data/guides/`, which removes the sources
+added by link.
 
 ## How it talks to the core
 
@@ -132,7 +175,8 @@ written with plain typed functions and a backend agnostic vector store.
 ## What comes next on this branch
 
 The vector store is still the local ChromaDB from Session 1. Because the store
-sits behind a small interface (add, search, count, reset), the planned next step
+sits behind a small interface (add, search, count, reset, plus listing and
+removing sources), the planned next step
 is a PostgreSQL with pgvector implementation that drops in without changing the
 assistant or this web app. A Streamlit version of the same two panels is also a
 natural addition for people who prefer it.

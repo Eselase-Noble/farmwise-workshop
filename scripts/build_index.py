@@ -6,7 +6,8 @@ Usage:
 
 Loads every guide in data/guides/, chunks them, embeds the chunks with Ollama,
 and stores them in a persistent local ChromaDB folder. Re-running rebuilds the
-index so it matches the folder exactly.
+index so it matches the folder exactly, which removes any sources added by link.
+To rebuild those as well, use scripts/rebuild_kb.py --reset.
 """
 
 from __future__ import annotations

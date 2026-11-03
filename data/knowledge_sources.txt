@@ -26,6 +26,3 @@ https://srid.mofa.gov.gh/sites/default/files/2025-12/AGRICULTURE%20IN%20GHANA%20
 
 # FAO — Fertilizer use by crop in Ghana
 https://www.fao.org/4/a0013e/a0013e00.pdf
-
-# Wikipedia — Agriculture in Ghana (tertiary overview)
-https://en.wikipedia.org/wiki/Agriculture_in_Ghana

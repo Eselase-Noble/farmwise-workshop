@@ -116,6 +116,12 @@ class FakeStore(VectorStore):
     def count(self):  # pragma: no cover
         return len(self._results)
 
+    def distinct_sources(self):  # pragma: no cover
+        return {}
+
+    def delete_source(self, source):
+        return 0
+
     def reset(self):  # pragma: no cover
         pass
 
@@ -134,7 +140,7 @@ def fake_results():
             id="soil.md::1",
             document="Lime raises soil pH over time.",
             metadata={"source": "soil.md", "chunk_index": 1},
-            score=0.40,
+            score=0.70,
             distance=0.60,
         ),
     ]

@@ -7,6 +7,7 @@ const input = document.getElementById("chat-input");
 const sendBtn = document.getElementById("chat-send");
 
 const history = []; // [{role, content}]
+const MAX_HISTORY = 20; // the assistant only needs the recent turns
 
 function currentMode() {
   const el = document.querySelector('input[name="mode"]:checked');
@@ -54,7 +55,7 @@ form.addEventListener("submit", async (e) => {
     const data = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history, use_rag: useRag }),
+      body: JSON.stringify({ messages: history.slice(-MAX_HISTORY), use_rag: useRag }),
     }).then(async (r) => {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.detail || `Request failed (${r.status})`);

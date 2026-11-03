@@ -8,7 +8,9 @@ one :class:`Document` whose ``source`` is used later for citations.
 from __future__ import annotations
 
 import io
+import ipaddress
 import re
+import socket
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -105,7 +107,8 @@ def _read_spreadsheet(path: Path, *, excel: bool) -> str:
             return df.to_csv(index=False)
 
     if excel:
-        sheets = pd.read_excel(path, sheet_name=None)  # dict of all sheets
+        engine = "calamine" if path.suffix.lower() == ".xls" else None
+        sheets = pd.read_excel(path, sheet_name=None, engine=engine)  # dict of all sheets
         blocks = []
         for name, df in sheets.items():
             blocks.append(f"## Sheet: {name}\n{frame_to_text(df)}")
@@ -130,7 +133,7 @@ def _read_pdf_bytes(data: bytes) -> str:
     return "\n\n".join(pages)
 
 
-def _html_to_text(html: str) -> str:
+def _html_to_text(html: str | bytes) -> str:
     """Pull the readable text out of an HTML page.
 
     Uses BeautifulSoup, dropping script/style/nav/footer so we keep the article
@@ -150,31 +153,106 @@ def _html_to_text(html: str) -> str:
     return "\n".join(lines)
 
 
+class UnsafeURLError(ValueError):
+    """Raised for a URL the app must not fetch, such as one on a private network."""
+
+
+class DownloadTooLargeError(ValueError):
+    """Raised when a remote document is over ``config.MAX_DOWNLOAD_MB``."""
+
+
+_USER_AGENT = "FarmWise/1.0 (workshop demo; +https://github.com/Eselase-Noble/farmwise-workshop)"
+_MAX_REDIRECTS = 5
+
+
+def validate_public_url(url: str) -> None:
+    """Allow only http(s) URLs whose host resolves solely to public addresses.
+
+    This stops the fetcher being pointed at the machine itself, the local network
+    or a cloud metadata service.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise UnsafeURLError(f"Only http and https links can be added: {url}")
+    try:
+        infos = socket.getaddrinfo(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM)
+    except (socket.gaierror, ValueError) as exc:
+        raise UnsafeURLError(f"Could not resolve {parsed.hostname}: {exc}") from exc
+    for info in infos:
+        address = ipaddress.ip_address(info[4][0].split("%")[0])
+        address = getattr(address, "ipv4_mapped", None) or address
+        if not address.is_global or address.is_multicast:
+            raise UnsafeURLError(f"{parsed.hostname} is not a public address.")
+
+
+def _fetch(url: str, *, timeout: int) -> tuple[bytes, str]:
+    """Download ``url`` and return ``(body, content_type)``.
+
+    Every redirect target is checked as well, and the download stops at the size
+    limit whatever the server claims.
+    """
+    limit = config.MAX_DOWNLOAD_MB * 1024 * 1024
+    for _ in range(_MAX_REDIRECTS + 1):
+        validate_public_url(url)
+        with requests.get(
+            url,
+            headers={"User-Agent": _USER_AGENT},
+            timeout=timeout,
+            stream=True,
+            allow_redirects=False,
+        ) as resp:
+            if resp.is_redirect:
+                url = urljoin(url, resp.headers["Location"])
+                continue
+            resp.raise_for_status()
+            body = bytearray()
+            for block in resp.iter_content(chunk_size=64 * 1024):
+                body.extend(block)
+                if len(body) > limit:
+                    raise DownloadTooLargeError(
+                        f"{url} is over the {config.MAX_DOWNLOAD_MB} MB download limit."
+                    )
+            return bytes(body), resp.headers.get("Content-Type", "").lower()
+    raise UnsafeURLError(f"Too many redirects from {url}")
+
+
+def _is_pdf(url: str, body: bytes, content_type: str) -> bool:
+    return (
+        body.startswith(b"%PDF-")
+        or "application/pdf" in content_type
+        or urlparse(url).path.lower().endswith(".pdf")
+    )
+
+
+def _is_text(content_type: str) -> bool:
+    media_type = content_type.split(";")[0].strip()
+    return not media_type or media_type.startswith("text/") or media_type.endswith(("/xml", "+xml"))
+
+
+def _body_to_text(url: str, body: bytes, content_type: str) -> str:
+    if _is_pdf(url, body, content_type):
+        text = _read_pdf_bytes(body)
+    elif _is_text(content_type):
+        text = _html_to_text(body)
+    else:
+        raise ValueError(f"Cannot read {url}: unsupported content type '{content_type}'.")
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 def load_url(url: str, *, timeout: int = 30) -> Document:
-    """Fetch a web page or PDF by URL and return it as a :class:`Document`.
+    """Fetch a public web page or PDF by URL and return it as a :class:`Document`.
 
     The ``source`` is the URL itself, so answers can cite where the text came
     from. HTML is reduced to readable text; PDFs are extracted page by page.
     """
-    headers = {"User-Agent": "FarmWise/1.0 (workshop demo; +https://github.com/Eselase-Noble/farmwise-workshop)"}
-    resp = requests.get(url, headers=headers, timeout=timeout)
-    resp.raise_for_status()
-
-    content_type = resp.headers.get("Content-Type", "").lower()
-    is_pdf = "application/pdf" in content_type or urlparse(url).path.lower().endswith(".pdf")
-
-    if is_pdf:
-        text = _read_pdf_bytes(resp.content)
-    else:
-        text = _html_to_text(resp.text)
-
-    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    body, content_type = _fetch(url, timeout=timeout)
+    text = _body_to_text(url, body, content_type)
     if not text:
         raise ValueError(f"No readable text extracted from {url}")
     return Document(text=text, source=url)
 
 
-def discover_relevant_links(base_url: str, html: str, *, limit: int = 6) -> list[str]:
+def discover_relevant_links(base_url: str, html: str | bytes, *, limit: int = 6) -> list[str]:
     """Find links on a page worth following: linked PDFs and same-site pages whose
     URL or anchor text looks relevant to farming. PDFs come first."""
     from bs4 import BeautifulSoup
@@ -207,21 +285,16 @@ def crawl_and_load(url: str, *, max_pages: int = 5, timeout: int = 30) -> list[D
     This is how a landing or section page (which is often a thin JavaScript shell)
     still yields real content: the actual material is in the documents it links to.
     """
-    headers = {"User-Agent": "FarmWise/1.0 (workshop demo)"}
-    resp = requests.get(url, headers=headers, timeout=timeout)
-    resp.raise_for_status()
+    body, content_type = _fetch(url, timeout=timeout)
+    text = _body_to_text(url, body, content_type)
 
-    content_type = resp.headers.get("Content-Type", "").lower()
-    if "application/pdf" in content_type or urlparse(url).path.lower().endswith(".pdf"):
-        return [Document(text=_read_pdf_bytes(resp.content).strip(), source=url)]
-
-    html = resp.text
     docs: list[Document] = []
-    main = re.sub(r"\n{3,}", "\n\n", _html_to_text(html)).strip()
-    if main:
-        docs.append(Document(text=main, source=url))
+    if text:
+        docs.append(Document(text=text, source=url))
+    if _is_pdf(url, body, content_type):
+        return docs
 
-    for link in discover_relevant_links(url, html, limit=max_pages):
+    for link in discover_relevant_links(url, body, limit=max_pages):
         try:
             doc = load_url(link, timeout=timeout)
             if doc.text.strip():
@@ -248,7 +321,11 @@ def load_guides(directory: Optional[Path | str] = None) -> list[Document]:
             continue
         if path.name.lower() == "readme.md":
             continue
-        doc = load_file(path)
+        try:
+            doc = load_file(path)
+        except Exception as exc:  # one unreadable file should not stop a rebuild
+            print(f"[loader] WARNING: could not read {path.name}, skipping: {exc}")
+            continue
         if not doc.text:
             print(f"[loader] WARNING: no extractable text in {path.name}, skipping")
             continue
