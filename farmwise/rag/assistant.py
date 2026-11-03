@@ -82,8 +82,10 @@ RAG_SYSTEM_PROMPT = (
     "tables, reports, passages or 'the guide'; the sources are listed separately "
     "for the reader. When giving a crop's requirements, describe them as "
     "recommended growing conditions, not as raw statistics. If the question covers "
-    "more than one crop, give each crop under its own heading and never mix one "
-    "crop's figures into another's."
+    "more than one crop, address each crop in its own short paragraph beginning "
+    "with the crop name, and never mix one crop's figures into another's. "
+    "Write plain sentences with no Markdown formatting: no asterisks (*), hashes "
+    "(#), backticks or bullet characters."
 )
 
 

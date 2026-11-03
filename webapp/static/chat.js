@@ -62,8 +62,9 @@ form.addEventListener("submit", async (e) => {
       return d;
     });
     thinking.remove();
-    addMessage("bot", data.answer, data.sources, data.used_context, false, useRag ? "rag" : "bare");
-    history.push({ role: "assistant", content: data.answer });
+    const answer = cleanMarkdown(data.answer);
+    addMessage("bot", answer, data.sources, data.used_context, false, useRag ? "rag" : "bare");
+    history.push({ role: "assistant", content: answer });
   } catch (err) {
     thinking.remove();
     addMessage("bot", err.message, [], false, true);
@@ -74,6 +75,18 @@ form.addEventListener("submit", async (e) => {
 });
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// The model is told to avoid Markdown, but strip any stray markers just in case
+// so the plain-text bubble never shows raw ** or # characters.
+function cleanMarkdown(t) {
+  return t
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/(^|\n)\s{0,3}#{1,6}\s*/g, "$1")
+    .replace(/(^|\n)\s*[*-]\s+/g, "$1• ")
+    .trim();
+}
 
 const SRC_ICONS = {
   web: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18" stroke="currentColor" stroke-width="2"/></svg>',
