@@ -172,3 +172,11 @@ function addThinking() {
   log.scrollTop = log.scrollHeight;
   return wrap;
 }
+
+// A question handed over from another page (e.g. the crop page) auto-asks it.
+const askParam = new URLSearchParams(location.search).get("ask");
+if (askParam) {
+  input.value = askParam;
+  input.dispatchEvent(new Event("input"));
+  form.requestSubmit();
+}

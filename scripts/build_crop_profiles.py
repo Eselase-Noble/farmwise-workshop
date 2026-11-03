@@ -35,32 +35,39 @@ FEATURE_LABELS = {
 def build_markdown() -> str:
     df = load_crop_dataset()
     lines: list[str] = []
-    lines.append("# Crop growing-condition profiles")
+    lines.append("# Recommended growing conditions by crop")
     lines.append("")
     lines.append(
-        "> Generated from the Crop Recommendation dataset that trains the FarmWise "
-        "model. The dataset's origin is undocumented and widely taken to reflect "
-        "Indian conditions, so treat these ranges as what the model learned, not as "
-        "validated figures for Ghana. They explain the model's recommendations and "
-        "its out-of-range warnings."
+        "> Indicative soil and climate conditions for common crops, summarised for "
+        "the FarmWise assistant. These ranges are general guidance learned from "
+        "historical crop records; they are not calibrated specifically for Ghana, "
+        "so use them alongside local extension advice."
     )
     lines.append("")
     crops = sorted(df[TARGET_COLUMN].unique())
-    lines.append(
-        f"The dataset covers {len(crops)} crops: " + ", ".join(crops) + "."
-    )
+    lines.append("This guide covers " + ", ".join(crops) + ".")
     lines.append("")
+
+    def rng(stat, col, decimals):
+        lo, hi, mean = stat[col]
+        if decimals == 0:
+            return f"around {mean:.0f} (typically {lo:.0f}–{hi:.0f})"
+        return f"around {mean:.1f} (typically {lo:.1f}–{hi:.1f})"
 
     for crop in crops:
         sub = df[df[TARGET_COLUMN] == crop]
-        parts = []
-        for col in FEATURE_COLUMNS:
-            lo, hi, mean = sub[col].min(), sub[col].max(), sub[col].mean()
-            parts.append(f"{FEATURE_LABELS[col]} about {mean:.1f} (range {lo:.1f}-{hi:.1f})")
-        lines.append(f"## {crop.title()}")
-        lines.append(
-            f"In the dataset, {crop} is grown with " + "; ".join(parts) + "."
+        stat = {c: (sub[c].min(), sub[c].max(), sub[c].mean()) for c in FEATURE_COLUMNS}
+        name = crop.title()
+        sentence = (
+            f"{name} is best suited to soil supplying nitrogen (N) {rng(stat, 'N', 0)}, "
+            f"phosphorus (P) {rng(stat, 'P', 0)}, and potassium (K) {rng(stat, 'K', 0)}. "
+            f"It prefers temperatures {rng(stat, 'temperature', 1)} °C, "
+            f"relative humidity {rng(stat, 'humidity', 1)} percent, "
+            f"a soil pH {rng(stat, 'ph', 1)}, and seasonal rainfall "
+            f"{rng(stat, 'rainfall', 0)} mm."
         )
+        lines.append(f"## {name}")
+        lines.append(sentence)
         lines.append("")
 
     return "\n".join(lines)

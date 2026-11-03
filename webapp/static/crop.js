@@ -48,8 +48,70 @@ function initSliders() {
 
 fetch("/api/crop-conditions")
   .then((r) => r.json())
-  .then((d) => { CONDITIONS = d && d.features && d.features.length ? d : null; initSliders(); })
+  .then((d) => { CONDITIONS = d && d.features && d.features.length ? d : null; initSliders(); initRequirements(); })
   .catch(() => initSliders());
+
+// --- tabs: Recommend a crop  /  What a crop needs ---
+document.querySelectorAll(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((t) => {
+      const on = t === tab;
+      t.classList.toggle("is-active", on);
+      t.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    document.getElementById("tab-recommend").hidden = tab.dataset.tab !== "recommend";
+    document.getElementById("tab-requirements").hidden = tab.dataset.tab !== "requirements";
+  });
+});
+
+// --- crop -> requirements (the reverse of the recommender) ---
+function fmtRange(feature, lo, hi) {
+  const unit = (CONDITIONS && CONDITIONS.units[feature]) || "";
+  const whole = feature === "N" || feature === "P" || feature === "K" || feature === "rainfall";
+  const n = (x) => (whole ? Math.round(x) : x.toFixed(1));
+  return `${n(lo)}–${n(hi)}${unit ? " " + unit : ""}`;
+}
+
+function initRequirements() {
+  const sel = document.getElementById("req-crop");
+  if (!sel || !CONDITIONS || !CONDITIONS.crops) return;
+  const crops = Object.keys(CONDITIONS.crops).sort();
+  sel.innerHTML = crops
+    .map((c) => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`)
+    .join("");
+  sel.addEventListener("change", () => renderRequirements(sel.value));
+  renderRequirements(sel.value);
+}
+
+function renderRequirements(crop) {
+  const out = document.getElementById("req-output");
+  const cond = CONDITIONS && CONDITIONS.crops[crop];
+  if (!cond) { out.innerHTML = '<p class="result__empty">No data for this crop.</p>'; return; }
+
+  let rows = "";
+  CONDITIONS.features.forEach((f) => {
+    const c = cond[f];
+    const r = CONDITIONS.ranges[f];
+    const sMin = Math.min(r.min, c.min), sMax = Math.max(r.max, c.max);
+    const span = (sMax - sMin) || 1;
+    const pct = (x) => ((x - sMin) / span) * 100;
+    const bandL = pct(c.min), bandW = Math.max(1.5, pct(c.max) - pct(c.min));
+    const meanL = Math.max(0, Math.min(100, pct(c.mean)));
+    rows +=
+      `<div class="cond-row"><span class="cond-label">${NAMES[f]}</span>` +
+      `<span class="cond-track"><span class="cond-band" style="left:${bandL}%;width:${bandW}%"></span>` +
+      `<span class="cond-mark mean" style="left:${meanL}%"></span></span>` +
+      `<span class="cond-val">${fmtRange(f, c.min, c.max)}</span></div>`;
+  });
+  out.innerHTML =
+    `<div class="conditions__title">What <strong style="text-transform:capitalize">${crop}</strong> usually needs</div>` +
+    rows +
+    `<div class="conditions__key"><span><i class="k-band"></i> typical range</span>` +
+    `<span><i class="k-mark"></i> average</span></div>`;
+
+  const ask = document.getElementById("req-ask");
+  if (ask) ask.href = "/chat?ask=" + encodeURIComponent(`How do I grow ${crop}, and what soil and weather does it need?`);
+}
 
 // Re-play a CSS entrance animation on an element that is already in the DOM.
 function replay(el, cls) {

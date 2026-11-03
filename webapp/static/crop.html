@@ -40,6 +40,12 @@
       </div>
 
       <section class="section--tight">
+        <div class="tabs" role="tablist" aria-label="Crop tools">
+          <button class="tab is-active" type="button" data-tab="recommend" aria-selected="true">Recommend a crop</button>
+          <button class="tab" type="button" data-tab="requirements" aria-selected="false">What a crop needs</button>
+        </div>
+
+        <div class="tabpane" id="tab-recommend">
         <div class="tool-grid">
           <div class="panel">
             <div class="panel__title">Your field</div>
@@ -102,6 +108,28 @@
                   <span><i class="k-band"></i> typical range</span>
                   <span><i class="k-mark"></i> your field</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <div class="tabpane" id="tab-requirements" hidden>
+          <div class="tool-grid">
+            <div class="panel">
+              <div class="panel__title">Pick a crop</div>
+              <p class="card__lede">See the soil and weather a crop usually grows in, straight from
+                the dataset the model learned from.</p>
+              <label class="field">
+                <span class="field__label"><span>Crop</span></span>
+                <select id="req-crop"></select>
+              </label>
+              <a id="req-ask" class="btn" href="/chat">Ask the assistant about this crop</a>
+            </div>
+            <div class="panel">
+              <div class="panel__title">Typical growing conditions</div>
+              <div id="req-output" class="conditions">
+                <p class="result__empty" style="padding:24px 0">Pick a crop to see what it needs.</p>
               </div>
             </div>
           </div>

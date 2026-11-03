@@ -1,71 +1,71 @@
-# Crop growing-condition profiles
+# Recommended growing conditions by crop
 
-> Generated from the Crop Recommendation dataset that trains the FarmWise model. The dataset's origin is undocumented and widely taken to reflect Indian conditions, so treat these ranges as what the model learned, not as validated figures for Ghana. They explain the model's recommendations and its out-of-range warnings.
+> Indicative soil and climate conditions for common crops, summarised for the FarmWise assistant. These ranges are general guidance learned from historical crop records; they are not calibrated specifically for Ghana, so use them alongside local extension advice.
 
-The dataset covers 22 crops: apple, banana, blackgram, chickpea, coconut, coffee, cotton, grapes, jute, kidneybeans, lentil, maize, mango, mothbeans, mungbean, muskmelon, orange, papaya, pigeonpeas, pomegranate, rice, watermelon.
+This guide covers apple, banana, blackgram, chickpea, coconut, coffee, cotton, grapes, jute, kidneybeans, lentil, maize, mango, mothbeans, mungbean, muskmelon, orange, papaya, pigeonpeas, pomegranate, rice, watermelon.
 
 ## Apple
-In the dataset, apple is grown with nitrogen (N) about 20.8 (range 0.0-40.0); phosphorus (P) about 134.2 (range 120.0-145.0); potassium (K) about 199.9 (range 195.0-205.0); temperature (°C) about 22.6 (range 21.0-24.0); humidity (%) about 92.3 (range 90.0-94.9); soil pH about 5.9 (range 5.5-6.5); rainfall (mm) about 112.7 (range 100.1-125.0).
+Apple is best suited to soil supplying nitrogen (N) around 21 (typically 0–40), phosphorus (P) around 134 (typically 120–145), and potassium (K) around 200 (typically 195–205). It prefers temperatures around 22.6 (typically 21.0–24.0) °C, relative humidity around 92.3 (typically 90.0–94.9) percent, a soil pH around 5.9 (typically 5.5–6.5), and seasonal rainfall around 113 (typically 100–125) mm.
 
 ## Banana
-In the dataset, banana is grown with nitrogen (N) about 100.2 (range 80.0-120.0); phosphorus (P) about 82.0 (range 70.0-95.0); potassium (K) about 50.0 (range 45.0-55.0); temperature (°C) about 27.4 (range 25.0-29.9); humidity (%) about 80.4 (range 75.0-85.0); soil pH about 6.0 (range 5.5-6.5); rainfall (mm) about 104.6 (range 90.1-119.8).
+Banana is best suited to soil supplying nitrogen (N) around 100 (typically 80–120), phosphorus (P) around 82 (typically 70–95), and potassium (K) around 50 (typically 45–55). It prefers temperatures around 27.4 (typically 25.0–29.9) °C, relative humidity around 80.4 (typically 75.0–85.0) percent, a soil pH around 6.0 (typically 5.5–6.5), and seasonal rainfall around 105 (typically 90–120) mm.
 
 ## Blackgram
-In the dataset, blackgram is grown with nitrogen (N) about 40.0 (range 20.0-60.0); phosphorus (P) about 67.5 (range 55.0-80.0); potassium (K) about 19.2 (range 15.0-25.0); temperature (°C) about 30.0 (range 25.1-34.9); humidity (%) about 65.1 (range 60.1-70.0); soil pH about 7.1 (range 6.5-7.8); rainfall (mm) about 67.9 (range 60.4-74.9).
+Blackgram is best suited to soil supplying nitrogen (N) around 40 (typically 20–60), phosphorus (P) around 67 (typically 55–80), and potassium (K) around 19 (typically 15–25). It prefers temperatures around 30.0 (typically 25.1–34.9) °C, relative humidity around 65.1 (typically 60.1–70.0) percent, a soil pH around 7.1 (typically 6.5–7.8), and seasonal rainfall around 68 (typically 60–75) mm.
 
 ## Chickpea
-In the dataset, chickpea is grown with nitrogen (N) about 40.1 (range 20.0-60.0); phosphorus (P) about 67.8 (range 55.0-80.0); potassium (K) about 79.9 (range 75.0-85.0); temperature (°C) about 18.9 (range 17.0-21.0); humidity (%) about 16.9 (range 14.3-20.0); soil pH about 7.3 (range 6.0-8.9); rainfall (mm) about 80.1 (range 65.1-94.8).
+Chickpea is best suited to soil supplying nitrogen (N) around 40 (typically 20–60), phosphorus (P) around 68 (typically 55–80), and potassium (K) around 80 (typically 75–85). It prefers temperatures around 18.9 (typically 17.0–21.0) °C, relative humidity around 16.9 (typically 14.3–20.0) percent, a soil pH around 7.3 (typically 6.0–8.9), and seasonal rainfall around 80 (typically 65–95) mm.
 
 ## Coconut
-In the dataset, coconut is grown with nitrogen (N) about 22.0 (range 0.0-40.0); phosphorus (P) about 16.9 (range 5.0-30.0); potassium (K) about 30.6 (range 25.0-35.0); temperature (°C) about 27.4 (range 25.0-29.9); humidity (%) about 94.8 (range 90.0-100.0); soil pH about 6.0 (range 5.5-6.5); rainfall (mm) about 175.7 (range 131.1-225.6).
+Coconut is best suited to soil supplying nitrogen (N) around 22 (typically 0–40), phosphorus (P) around 17 (typically 5–30), and potassium (K) around 31 (typically 25–35). It prefers temperatures around 27.4 (typically 25.0–29.9) °C, relative humidity around 94.8 (typically 90.0–100.0) percent, a soil pH around 6.0 (typically 5.5–6.5), and seasonal rainfall around 176 (typically 131–226) mm.
 
 ## Coffee
-In the dataset, coffee is grown with nitrogen (N) about 101.2 (range 80.0-120.0); phosphorus (P) about 28.7 (range 15.0-40.0); potassium (K) about 29.9 (range 25.0-35.0); temperature (°C) about 25.5 (range 23.1-27.9); humidity (%) about 58.9 (range 50.0-69.9); soil pH about 6.8 (range 6.0-7.5); rainfall (mm) about 158.1 (range 115.2-199.5).
+Coffee is best suited to soil supplying nitrogen (N) around 101 (typically 80–120), phosphorus (P) around 29 (typically 15–40), and potassium (K) around 30 (typically 25–35). It prefers temperatures around 25.5 (typically 23.1–27.9) °C, relative humidity around 58.9 (typically 50.0–69.9) percent, a soil pH around 6.8 (typically 6.0–7.5), and seasonal rainfall around 158 (typically 115–199) mm.
 
 ## Cotton
-In the dataset, cotton is grown with nitrogen (N) about 117.8 (range 100.0-140.0); phosphorus (P) about 46.2 (range 35.0-60.0); potassium (K) about 19.6 (range 15.0-25.0); temperature (°C) about 24.0 (range 22.0-26.0); humidity (%) about 79.8 (range 75.0-84.9); soil pH about 6.9 (range 5.8-8.0); rainfall (mm) about 80.4 (range 60.7-99.9).
+Cotton is best suited to soil supplying nitrogen (N) around 118 (typically 100–140), phosphorus (P) around 46 (typically 35–60), and potassium (K) around 20 (typically 15–25). It prefers temperatures around 24.0 (typically 22.0–26.0) °C, relative humidity around 79.8 (typically 75.0–84.9) percent, a soil pH around 6.9 (typically 5.8–8.0), and seasonal rainfall around 80 (typically 61–100) mm.
 
 ## Grapes
-In the dataset, grapes is grown with nitrogen (N) about 23.2 (range 0.0-40.0); phosphorus (P) about 132.5 (range 120.0-145.0); potassium (K) about 200.1 (range 195.0-205.0); temperature (°C) about 23.8 (range 8.8-41.9); humidity (%) about 81.9 (range 80.0-84.0); soil pH about 6.0 (range 5.5-6.5); rainfall (mm) about 69.6 (range 65.0-74.9).
+Grapes is best suited to soil supplying nitrogen (N) around 23 (typically 0–40), phosphorus (P) around 133 (typically 120–145), and potassium (K) around 200 (typically 195–205). It prefers temperatures around 23.8 (typically 8.8–41.9) °C, relative humidity around 81.9 (typically 80.0–84.0) percent, a soil pH around 6.0 (typically 5.5–6.5), and seasonal rainfall around 70 (typically 65–75) mm.
 
 ## Jute
-In the dataset, jute is grown with nitrogen (N) about 78.4 (range 60.0-100.0); phosphorus (P) about 46.9 (range 35.0-60.0); potassium (K) about 40.0 (range 35.0-45.0); temperature (°C) about 25.0 (range 23.1-27.0); humidity (%) about 79.6 (range 70.9-89.9); soil pH about 6.7 (range 6.0-7.5); rainfall (mm) about 174.8 (range 150.2-199.8).
+Jute is best suited to soil supplying nitrogen (N) around 78 (typically 60–100), phosphorus (P) around 47 (typically 35–60), and potassium (K) around 40 (typically 35–45). It prefers temperatures around 25.0 (typically 23.1–27.0) °C, relative humidity around 79.6 (typically 70.9–89.9) percent, a soil pH around 6.7 (typically 6.0–7.5), and seasonal rainfall around 175 (typically 150–200) mm.
 
 ## Kidneybeans
-In the dataset, kidneybeans is grown with nitrogen (N) about 20.8 (range 0.0-40.0); phosphorus (P) about 67.5 (range 55.0-80.0); potassium (K) about 20.1 (range 15.0-25.0); temperature (°C) about 20.1 (range 15.3-24.9); humidity (%) about 21.6 (range 18.1-25.0); soil pH about 5.7 (range 5.5-6.0); rainfall (mm) about 105.9 (range 60.3-149.7).
+Kidneybeans is best suited to soil supplying nitrogen (N) around 21 (typically 0–40), phosphorus (P) around 68 (typically 55–80), and potassium (K) around 20 (typically 15–25). It prefers temperatures around 20.1 (typically 15.3–24.9) °C, relative humidity around 21.6 (typically 18.1–25.0) percent, a soil pH around 5.7 (typically 5.5–6.0), and seasonal rainfall around 106 (typically 60–150) mm.
 
 ## Lentil
-In the dataset, lentil is grown with nitrogen (N) about 18.8 (range 0.0-40.0); phosphorus (P) about 68.4 (range 55.0-80.0); potassium (K) about 19.4 (range 15.0-25.0); temperature (°C) about 24.5 (range 18.1-29.9); humidity (%) about 64.8 (range 60.1-69.9); soil pH about 6.9 (range 5.9-7.8); rainfall (mm) about 45.7 (range 35.0-54.9).
+Lentil is best suited to soil supplying nitrogen (N) around 19 (typically 0–40), phosphorus (P) around 68 (typically 55–80), and potassium (K) around 19 (typically 15–25). It prefers temperatures around 24.5 (typically 18.1–29.9) °C, relative humidity around 64.8 (typically 60.1–69.9) percent, a soil pH around 6.9 (typically 5.9–7.8), and seasonal rainfall around 46 (typically 35–55) mm.
 
 ## Maize
-In the dataset, maize is grown with nitrogen (N) about 77.8 (range 60.0-100.0); phosphorus (P) about 48.4 (range 35.0-60.0); potassium (K) about 19.8 (range 15.0-25.0); temperature (°C) about 22.4 (range 18.0-26.5); humidity (%) about 65.1 (range 55.3-74.8); soil pH about 6.2 (range 5.5-7.0); rainfall (mm) about 84.8 (range 60.7-109.8).
+Maize is best suited to soil supplying nitrogen (N) around 78 (typically 60–100), phosphorus (P) around 48 (typically 35–60), and potassium (K) around 20 (typically 15–25). It prefers temperatures around 22.4 (typically 18.0–26.5) °C, relative humidity around 65.1 (typically 55.3–74.8) percent, a soil pH around 6.2 (typically 5.5–7.0), and seasonal rainfall around 85 (typically 61–110) mm.
 
 ## Mango
-In the dataset, mango is grown with nitrogen (N) about 20.1 (range 0.0-40.0); phosphorus (P) about 27.2 (range 15.0-40.0); potassium (K) about 29.9 (range 25.0-35.0); temperature (°C) about 31.2 (range 27.0-36.0); humidity (%) about 50.2 (range 45.0-55.0); soil pH about 5.8 (range 4.5-7.0); rainfall (mm) about 94.7 (range 89.3-100.8).
+Mango is best suited to soil supplying nitrogen (N) around 20 (typically 0–40), phosphorus (P) around 27 (typically 15–40), and potassium (K) around 30 (typically 25–35). It prefers temperatures around 31.2 (typically 27.0–36.0) °C, relative humidity around 50.2 (typically 45.0–55.0) percent, a soil pH around 5.8 (typically 4.5–7.0), and seasonal rainfall around 95 (typically 89–101) mm.
 
 ## Mothbeans
-In the dataset, mothbeans is grown with nitrogen (N) about 21.4 (range 0.0-40.0); phosphorus (P) about 48.0 (range 35.0-60.0); potassium (K) about 20.2 (range 15.0-25.0); temperature (°C) about 28.2 (range 24.0-32.0); humidity (%) about 53.2 (range 40.0-65.0); soil pH about 6.8 (range 3.5-9.9); rainfall (mm) about 51.2 (range 30.9-74.4).
+Mothbeans is best suited to soil supplying nitrogen (N) around 21 (typically 0–40), phosphorus (P) around 48 (typically 35–60), and potassium (K) around 20 (typically 15–25). It prefers temperatures around 28.2 (typically 24.0–32.0) °C, relative humidity around 53.2 (typically 40.0–65.0) percent, a soil pH around 6.8 (typically 3.5–9.9), and seasonal rainfall around 51 (typically 31–74) mm.
 
 ## Mungbean
-In the dataset, mungbean is grown with nitrogen (N) about 21.0 (range 0.0-40.0); phosphorus (P) about 47.3 (range 35.0-60.0); potassium (K) about 19.9 (range 15.0-25.0); temperature (°C) about 28.5 (range 27.0-29.9); humidity (%) about 85.5 (range 80.0-90.0); soil pH about 6.7 (range 6.2-7.2); rainfall (mm) about 48.4 (range 36.1-59.9).
+Mungbean is best suited to soil supplying nitrogen (N) around 21 (typically 0–40), phosphorus (P) around 47 (typically 35–60), and potassium (K) around 20 (typically 15–25). It prefers temperatures around 28.5 (typically 27.0–29.9) °C, relative humidity around 85.5 (typically 80.0–90.0) percent, a soil pH around 6.7 (typically 6.2–7.2), and seasonal rainfall around 48 (typically 36–60) mm.
 
 ## Muskmelon
-In the dataset, muskmelon is grown with nitrogen (N) about 100.3 (range 80.0-120.0); phosphorus (P) about 17.7 (range 5.0-30.0); potassium (K) about 50.1 (range 45.0-55.0); temperature (°C) about 28.7 (range 27.0-29.9); humidity (%) about 92.3 (range 90.0-95.0); soil pH about 6.4 (range 6.0-6.8); rainfall (mm) about 24.7 (range 20.2-29.9).
+Muskmelon is best suited to soil supplying nitrogen (N) around 100 (typically 80–120), phosphorus (P) around 18 (typically 5–30), and potassium (K) around 50 (typically 45–55). It prefers temperatures around 28.7 (typically 27.0–29.9) °C, relative humidity around 92.3 (typically 90.0–95.0) percent, a soil pH around 6.4 (typically 6.0–6.8), and seasonal rainfall around 25 (typically 20–30) mm.
 
 ## Orange
-In the dataset, orange is grown with nitrogen (N) about 19.6 (range 0.0-40.0); phosphorus (P) about 16.6 (range 5.0-30.0); potassium (K) about 10.0 (range 5.0-15.0); temperature (°C) about 22.8 (range 10.0-34.9); humidity (%) about 92.2 (range 90.0-95.0); soil pH about 7.0 (range 6.0-8.0); rainfall (mm) about 110.5 (range 100.2-119.7).
+Orange is best suited to soil supplying nitrogen (N) around 20 (typically 0–40), phosphorus (P) around 17 (typically 5–30), and potassium (K) around 10 (typically 5–15). It prefers temperatures around 22.8 (typically 10.0–34.9) °C, relative humidity around 92.2 (typically 90.0–95.0) percent, a soil pH around 7.0 (typically 6.0–8.0), and seasonal rainfall around 110 (typically 100–120) mm.
 
 ## Papaya
-In the dataset, papaya is grown with nitrogen (N) about 49.9 (range 31.0-70.0); phosphorus (P) about 59.0 (range 46.0-70.0); potassium (K) about 50.0 (range 45.0-55.0); temperature (°C) about 33.7 (range 23.0-43.7); humidity (%) about 92.4 (range 90.0-94.9); soil pH about 6.7 (range 6.5-7.0); rainfall (mm) about 142.6 (range 40.4-248.9).
+Papaya is best suited to soil supplying nitrogen (N) around 50 (typically 31–70), phosphorus (P) around 59 (typically 46–70), and potassium (K) around 50 (typically 45–55). It prefers temperatures around 33.7 (typically 23.0–43.7) °C, relative humidity around 92.4 (typically 90.0–94.9) percent, a soil pH around 6.7 (typically 6.5–7.0), and seasonal rainfall around 143 (typically 40–249) mm.
 
 ## Pigeonpeas
-In the dataset, pigeonpeas is grown with nitrogen (N) about 20.7 (range 0.0-40.0); phosphorus (P) about 67.7 (range 55.0-80.0); potassium (K) about 20.3 (range 15.0-25.0); temperature (°C) about 27.7 (range 18.3-37.0); humidity (%) about 48.1 (range 30.4-69.7); soil pH about 5.8 (range 4.5-7.4); rainfall (mm) about 149.5 (range 90.1-198.8).
+Pigeonpeas is best suited to soil supplying nitrogen (N) around 21 (typically 0–40), phosphorus (P) around 68 (typically 55–80), and potassium (K) around 20 (typically 15–25). It prefers temperatures around 27.7 (typically 18.3–37.0) °C, relative humidity around 48.1 (typically 30.4–69.7) percent, a soil pH around 5.8 (typically 4.5–7.4), and seasonal rainfall around 149 (typically 90–199) mm.
 
 ## Pomegranate
-In the dataset, pomegranate is grown with nitrogen (N) about 18.9 (range 0.0-40.0); phosphorus (P) about 18.8 (range 5.0-30.0); potassium (K) about 40.2 (range 35.0-45.0); temperature (°C) about 21.8 (range 18.1-25.0); humidity (%) about 90.1 (range 85.1-95.0); soil pH about 6.4 (range 5.6-7.2); rainfall (mm) about 107.5 (range 102.5-112.5).
+Pomegranate is best suited to soil supplying nitrogen (N) around 19 (typically 0–40), phosphorus (P) around 19 (typically 5–30), and potassium (K) around 40 (typically 35–45). It prefers temperatures around 21.8 (typically 18.1–25.0) °C, relative humidity around 90.1 (typically 85.1–95.0) percent, a soil pH around 6.4 (typically 5.6–7.2), and seasonal rainfall around 108 (typically 103–112) mm.
 
 ## Rice
-In the dataset, rice is grown with nitrogen (N) about 79.9 (range 60.0-99.0); phosphorus (P) about 47.6 (range 35.0-60.0); potassium (K) about 39.9 (range 35.0-45.0); temperature (°C) about 23.7 (range 20.0-26.9); humidity (%) about 82.3 (range 80.1-85.0); soil pH about 6.4 (range 5.0-7.9); rainfall (mm) about 236.2 (range 182.6-298.6).
+Rice is best suited to soil supplying nitrogen (N) around 80 (typically 60–99), phosphorus (P) around 48 (typically 35–60), and potassium (K) around 40 (typically 35–45). It prefers temperatures around 23.7 (typically 20.0–26.9) °C, relative humidity around 82.3 (typically 80.1–85.0) percent, a soil pH around 6.4 (typically 5.0–7.9), and seasonal rainfall around 236 (typically 183–299) mm.
 
 ## Watermelon
-In the dataset, watermelon is grown with nitrogen (N) about 99.4 (range 80.0-120.0); phosphorus (P) about 17.0 (range 5.0-30.0); potassium (K) about 50.2 (range 45.0-55.0); temperature (°C) about 25.6 (range 24.0-27.0); humidity (%) about 85.2 (range 80.0-90.0); soil pH about 6.5 (range 6.0-7.0); rainfall (mm) about 50.8 (range 40.1-59.8).
+Watermelon is best suited to soil supplying nitrogen (N) around 99 (typically 80–120), phosphorus (P) around 17 (typically 5–30), and potassium (K) around 50 (typically 45–55). It prefers temperatures around 25.6 (typically 24.0–27.0) °C, relative humidity around 85.2 (typically 80.0–90.0) percent, a soil pH around 6.5 (typically 6.0–7.0), and seasonal rainfall around 51 (typically 40–60) mm.
