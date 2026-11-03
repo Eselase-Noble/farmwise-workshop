@@ -58,7 +58,10 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
+const empty = document.getElementById("crop-empty");
+
 function render(pred) {
+  if (empty) empty.hidden = true;
   result.hidden = false;
   replay(result, "reveal");
   document.getElementById("crop-name").textContent = pred.crop;
@@ -70,14 +73,17 @@ function render(pred) {
   const chip = document.getElementById("crop-chip");
   chip.hidden = false;
   chip.textContent = pred.out_of_distribution ? "out of range" : "in range";
-  chip.style.background = pred.out_of_distribution ? "#fff5f5" : "#eefaf0";
-  chip.style.color = pred.out_of_distribution ? "#8a1220" : "#10692c";
+  chip.className = "chip " + (pred.out_of_distribution ? "chip--warn" : "chip--good");
 
   const top3 = document.getElementById("crop-top3");
   top3.innerHTML = "";
   pred.top3.forEach((s) => {
+    const pct = fmtPct(s.probability);
     const li = document.createElement("li");
-    li.innerHTML = `<span class="rank__crop">${s.crop}</span><span class="rank__pct">${fmtPct(s.probability)}</span>`;
+    li.innerHTML =
+      `<span class="rank__crop">${s.crop}</span>` +
+      `<span class="rank__track"><span class="rank__bar" style="width:${pct}"></span></span>` +
+      `<span class="rank__pct">${pct}</span>`;
     top3.appendChild(li);
   });
 
@@ -93,7 +99,9 @@ function render(pred) {
 }
 
 function showError(msg) {
+  if (empty) empty.hidden = true;
   result.hidden = false;
+  document.getElementById("crop-top3").innerHTML = "";
   const ood = document.getElementById("crop-ood");
   ood.hidden = false;
   ood.innerHTML = `<span class="error">${msg}</span>`;

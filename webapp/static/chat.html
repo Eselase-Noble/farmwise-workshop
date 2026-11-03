@@ -13,22 +13,30 @@
 
   <header class="nav">
     <div class="wrap nav__row">
-      <a class="brand" href="/">
-        <span class="brand__logo">F</span>
+      <a class="brand" href="/" aria-label="FarmWise home">
+        <svg class="brand__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 30V15" stroke="#061037" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M16 18C16 12.5 11.5 8 5 8c0 5.5 4.5 10 11 10Z" fill="#01a7c2"/>
+          <path d="M16 15c0-4.4 4-8.5 10-8.5 0 4.4-4 8.5-10 8.5Z" fill="#1f9d55"/>
+        </svg>
         <span class="brand__name">Farm<span>Wise</span></span>
       </a>
-      <nav class="nav__links">
-        <a href="/">Crop</a>
+      <nav class="nav__links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/crop">Crop</a>
         <a href="/chat" class="is-active">Chat</a>
-        <a href="/knowledge">Knowledge base</a>
+        <a href="/knowledge">Knowledge</a>
       </nav>
     </div>
   </header>
 
-  <main class="wrap" style="padding-top:24px;padding-bottom:24px;">
+  <main class="wrap">
     <div class="chat">
       <div class="chat__head">
-        <span class="chat__title">Farming assistant</span>
+        <span class="chat__title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5Z" stroke="#061037" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          Farming assistant
+        </span>
         <div class="mode" role="radiogroup" aria-label="answer mode">
           <input type="radio" name="mode" id="mode-rag" value="rag" checked />
           <label for="mode-rag">RAG · grounded</label>
@@ -40,9 +48,9 @@
 
       <div class="chat__log" id="chat-log">
         <div class="msg msg--bot">
-          <div class="msg__bubble">Hello 👋 I'm FarmWise. Ask me about crops, soil, pests
-            or planting times. I answer from the farming guides in the knowledge base and
-            tell you when something isn't covered.</div>
+          <div class="msg__bubble">Hello 👋 I'm FarmWise. Ask me about crops, soil, pests or
+            planting times. I answer from the farming guides in the knowledge base and tell you
+            when something isn't covered.</div>
         </div>
       </div>
 
@@ -53,7 +61,7 @@
       </div>
 
       <form class="composer" id="chat-form">
-        <textarea id="chat-input" rows="1" maxlength="2000" placeholder="Ask a farming question…" required></textarea>
+        <textarea id="chat-input" rows="1" placeholder="Ask a farming question…" required></textarea>
         <button type="submit" class="btn" id="chat-send">Send</button>
       </form>
     </div>
@@ -61,13 +69,24 @@
 
   <footer class="footer">
     <div class="wrap footer__row">
+      <div>
+        <div class="footer__brand">
+          <svg class="brand__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 30V15" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M16 18C16 12.5 11.5 8 5 8c0 5.5 4.5 10 11 10Z" fill="#01a7c2"/>
+            <path d="M16 15c0-4.4 4-8.5 10-8.5 0 4.4-4 8.5-10 8.5Z" fill="#1f9d55"/>
+          </svg>
+          <span class="brand__name">Farm<span>Wise</span></span>
+        </div>
+        <p class="footer__note">Grounded answers cite the guide they came from. When the guides
+          don't cover a question, the assistant says so rather than guessing.</p>
+      </div>
       <div class="footer__orgs">
-        <span>Africode Lab</span><span class="sep">/</span>
-        <span>Accra Digital Skills</span><span class="sep">/</span>
+        <b>Built with</b>
+        <span>Africode Lab</span>
+        <span>Accra Digital Skills</span>
         <span>Mobile Web Ghana</span>
       </div>
-      <p class="footer__note">FarmWise runs on local AI models. Recommendations are a
-        starting point, not a substitute for local agronomic advice.</p>
     </div>
   </footer>
 

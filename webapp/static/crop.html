@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FarmWise — Crop recommendation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+
+  <header class="nav">
+    <div class="wrap nav__row">
+      <a class="brand" href="/" aria-label="FarmWise home">
+        <svg class="brand__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 30V15" stroke="#061037" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M16 18C16 12.5 11.5 8 5 8c0 5.5 4.5 10 11 10Z" fill="#01a7c2"/>
+          <path d="M16 15c0-4.4 4-8.5 10-8.5 0 4.4-4 8.5-10 8.5Z" fill="#1f9d55"/>
+        </svg>
+        <span class="brand__name">Farm<span>Wise</span></span>
+      </a>
+      <nav class="nav__links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/crop" class="is-active">Crop</a>
+        <a href="/chat">Chat</a>
+        <a href="/knowledge">Knowledge</a>
+        <a href="/chat" class="btn nav__cta">Ask the assistant</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="band">
+    <div class="wrap">
+      <div class="page-head">
+        <h1>Crop recommendation</h1>
+        <p>Enter your field's soil and weather. The model suggests the best crop, how sure it is,
+          the runner-up crops, and whether your readings fall within what it has seen before.</p>
+      </div>
+
+      <section class="section--tight">
+        <div class="tool-grid">
+          <div class="panel">
+            <div class="panel__title">Your field</div>
+            <form id="crop-form" class="form">
+              <div class="field-grid">
+                <label class="field"><span class="field__label">Nitrogen <span class="field__unit">N</span></span><input type="number" step="any" name="N" value="90" required /></label>
+                <label class="field"><span class="field__label">Phosphorus <span class="field__unit">P</span></span><input type="number" step="any" name="P" value="42" required /></label>
+                <label class="field"><span class="field__label">Potassium <span class="field__unit">K</span></span><input type="number" step="any" name="K" value="43" required /></label>
+                <label class="field"><span class="field__label">Temperature <span class="field__unit">°C</span></span><input type="number" step="any" name="temperature" value="21" required /></label>
+                <label class="field"><span class="field__label">Humidity <span class="field__unit">%</span></span><input type="number" step="any" name="humidity" value="82" required /></label>
+                <label class="field"><span class="field__label">Soil pH</span><input type="number" step="any" name="ph" value="6.5" required /></label>
+                <label class="field field--wide"><span class="field__label">Rainfall <span class="field__unit">mm</span></span><input type="number" step="any" name="rainfall" value="200" required /></label>
+              </div>
+              <button type="submit" class="btn">Recommend crop</button>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel__title">Recommendation</div>
+            <div id="crop-empty" class="result__empty">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21V9M12 9c0-3-2.5-5.5-6-5.5C6 6.5 8.5 9 12 9Zm0 0c0-2.6 2.2-5 5.5-5C17.5 6.6 15.3 9 12 9Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <p>Enter your field's readings and run the model to see a recommendation.</p>
+            </div>
+            <div id="crop-result" class="result" hidden>
+              <div class="verdict">
+                <span class="verdict__crop" id="crop-name">—</span>
+                <span class="chip" id="crop-chip" hidden>in range</span>
+              </div>
+              <div class="confidence">
+                <div class="confidence__meta"><span>Confidence</span><span id="crop-conf">—</span></div>
+                <div class="bar"><div class="bar__fill" id="crop-bar"></div></div>
+              </div>
+              <ul class="ranks" id="crop-top3"></ul>
+              <div class="notice" id="crop-ood" hidden></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__row">
+      <div>
+        <div class="footer__brand">
+          <svg class="brand__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 30V15" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M16 18C16 12.5 11.5 8 5 8c0 5.5 4.5 10 11 10Z" fill="#01a7c2"/>
+            <path d="M16 15c0-4.4 4-8.5 10-8.5 0 4.4-4 8.5-10 8.5Z" fill="#1f9d55"/>
+          </svg>
+          <span class="brand__name">Farm<span>Wise</span></span>
+        </div>
+        <p class="footer__note">FarmWise runs on local AI models. The crop data was not collected
+          in Ghana, so readings outside its range are flagged — treat them with extra care.</p>
+      </div>
+      <div class="footer__orgs">
+        <b>Built with</b>
+        <span>Africode Lab</span>
+        <span>Accra Digital Skills</span>
+        <span>Mobile Web Ghana</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/crop.js"></script>
+</body>
+</html>

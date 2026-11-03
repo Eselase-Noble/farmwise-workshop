@@ -224,6 +224,11 @@ def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/crop")
+def crop_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "crop.html")
+
+
 @app.get("/chat")
 def chat_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "chat.html")

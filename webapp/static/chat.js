@@ -73,6 +73,37 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const SRC_ICONS = {
+  web: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18" stroke="currentColor" stroke-width="2"/></svg>',
+  pdf: '<svg viewBox="0 0 24 24" fill="none"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  file: '<svg viewBox="0 0 24 24" fill="none"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+};
+function sourceType(src) {
+  const s = src.toLowerCase();
+  if (/^https?:\/\//.test(src)) return s.split("?")[0].endsWith(".pdf") ? "pdf" : "web";
+  return s.endsWith(".pdf") ? "pdf" : "file";
+}
+function prettySource(src) {
+  if (/^https?:\/\//i.test(src)) {
+    try { return new URL(src).hostname.replace(/^www\./, ""); } catch (_) { return src; }
+  }
+  return src;
+}
+
+// Reveal bot text character by character (skipped for reduced motion / long text).
+function typeOut(el, text, done) {
+  if (reduceMotion || text.length > 500) { el.textContent = text; done && done(); return; }
+  let i = 0;
+  (function tick() {
+    el.textContent = text.slice(0, i++);
+    log.scrollTop = log.scrollHeight;
+    if (i <= text.length) setTimeout(tick, 11);
+    else done && done();
+  })();
+}
+
 function addMessage(role, text, sources, usedContext, isError, mode) {
   const wrap = document.createElement("div");
   wrap.className = "msg " + (role === "user" ? "msg--user" : "msg--bot");
@@ -86,31 +117,50 @@ function addMessage(role, text, sources, usedContext, isError, mode) {
 
   const bubble = document.createElement("div");
   bubble.className = "msg__bubble";
-  if (isError) bubble.classList.add("is-idk");
-  if (role === "bot" && /don't know based on the farming guides/i.test(text)) {
+  if (isError || (role === "bot" && /don't know based on the farming guides/i.test(text))) {
     bubble.classList.add("is-idk");
   }
-  bubble.textContent = text;
   wrap.appendChild(bubble);
-
-  if (role === "bot" && usedContext && sources && sources.length) {
-    const box = document.createElement("div");
-    box.className = "msg__sources";
-    const seen = new Set();
-    sources.forEach((s) => {
-      if (seen.has(s.source)) return;
-      seen.add(s.source);
-      const chip = document.createElement("span");
-      chip.className = "src-chip";
-      chip.title = s.source;
-      chip.textContent = prettySource(s.source);
-      box.appendChild(chip);
-    });
-    wrap.appendChild(box);
-  }
-
   log.appendChild(wrap);
   log.scrollTop = log.scrollHeight;
+
+  if (role !== "bot") { bubble.textContent = text; return wrap; }
+
+  // Bot: type the answer, then add the copy button and source chips.
+  typeOut(bubble, text, () => {
+    if (isError) return;
+    const foot = document.createElement("div");
+    foot.className = "msg__foot";
+
+    const copy = document.createElement("button");
+    copy.className = "msg__copy";
+    copy.textContent = "Copy";
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; }
+      catch (_) { copy.textContent = "Copy failed"; }
+      setTimeout(() => (copy.textContent = "Copy"), 1500);
+    });
+    foot.appendChild(copy);
+    wrap.appendChild(foot);
+
+    if (usedContext && sources && sources.length) {
+      const box = document.createElement("div");
+      box.className = "msg__sources";
+      const seen = new Set();
+      sources.forEach((s) => {
+        if (seen.has(s.source)) return;
+        seen.add(s.source);
+        const chip = document.createElement("span");
+        chip.className = "src-chip";
+        chip.title = s.source;
+        chip.innerHTML = SRC_ICONS[sourceType(s.source)];
+        chip.appendChild(document.createTextNode(prettySource(s.source)));
+        box.appendChild(chip);
+      });
+      wrap.appendChild(box);
+    }
+    log.scrollTop = log.scrollHeight;
+  });
   return wrap;
 }
 
@@ -121,11 +171,4 @@ function addThinking() {
   log.appendChild(wrap);
   log.scrollTop = log.scrollHeight;
   return wrap;
-}
-
-function prettySource(src) {
-  if (/^https?:\/\//i.test(src)) {
-    try { return new URL(src).hostname.replace(/^www\./, ""); } catch (_) { return src; }
-  }
-  return src;
 }

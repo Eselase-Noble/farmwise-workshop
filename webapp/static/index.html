@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FarmWise — Crop recommendation</title>
+  <title>FarmWise — a smart farming assistant</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet" />
@@ -13,78 +13,149 @@
 
   <header class="nav">
     <div class="wrap nav__row">
-      <a class="brand" href="/">
-        <span class="brand__logo">F</span>
+      <a class="brand" href="/" aria-label="FarmWise home">
+        <svg class="brand__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 30V15" stroke="#061037" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M16 18C16 12.5 11.5 8 5 8c0 5.5 4.5 10 11 10Z" fill="#01a7c2"/>
+          <path d="M16 15c0-4.4 4-8.5 10-8.5 0 4.4-4 8.5-10 8.5Z" fill="#1f9d55"/>
+        </svg>
         <span class="brand__name">Farm<span>Wise</span></span>
       </a>
-      <nav class="nav__links">
-        <a href="/" class="is-active">Crop</a>
+      <nav class="nav__links" aria-label="Primary">
+        <a href="/" class="is-active">Home</a>
+        <a href="/crop">Crop</a>
         <a href="/chat">Chat</a>
-        <a href="/knowledge">Knowledge base</a>
+        <a href="/knowledge">Knowledge</a>
+        <a href="/chat" class="btn nav__cta">Ask the assistant</a>
       </nav>
     </div>
   </header>
 
-  <main class="wrap">
-    <section class="hero">
-      <p class="hero__eyebrow">Smart farming assistant</p>
-      <h1>Pick the right crop, and get answers you can trust.</h1>
-      <p>FarmWise recommends a crop from your field's soil and weather, and answers
-        farming questions from real guides. Everything runs on local AI models.</p>
-      <div class="hero__cta">
-        <a class="btn btn--light" href="#tool">Try the crop model</a>
-        <a class="btn btn--ghost" href="/chat">Ask the assistant</a>
-      </div>
-    </section>
-
-    <section class="section card card--center" id="tool">
-      <p class="card__eyebrow">Crop recommendation</p>
-      <h2>Enter a field's readings</h2>
-      <p class="card__lede">Seven numbers any extension officer can measure. The model
-        suggests the best crop, how confident it is, and the runners-up.</p>
-
-      <div class="crop-form-wrap">
-        <form id="crop-form" class="form">
-          <div class="field-grid">
-            <label class="field"><span class="field__label">Nitrogen <em>N</em></span><input type="number" step="any" name="N" value="90" required /></label>
-            <label class="field"><span class="field__label">Phosphorus <em>P</em></span><input type="number" step="any" name="P" value="42" required /></label>
-            <label class="field"><span class="field__label">Potassium <em>K</em></span><input type="number" step="any" name="K" value="43" required /></label>
-            <label class="field"><span class="field__label">Temperature <em>°C</em></span><input type="number" step="any" name="temperature" value="21" required /></label>
-            <label class="field"><span class="field__label">Humidity <em>%</em></span><input type="number" step="any" name="humidity" value="82" required /></label>
-            <label class="field"><span class="field__label">Soil pH</span><input type="number" step="any" name="ph" value="6.5" required /></label>
-            <label class="field field--wide"><span class="field__label">Rainfall <em>mm</em></span><input type="number" step="any" name="rainfall" value="200" required /></label>
-          </div>
-          <button type="submit" class="btn">Recommend crop</button>
-        </form>
-
-        <div id="crop-result" class="result" hidden>
-          <div class="verdict">
-            <span class="verdict__crop" id="crop-name">—</span>
-            <span class="chip" id="crop-chip" hidden>in range</span>
-          </div>
-          <div class="confidence">
-            <div class="confidence__meta"><span>Confidence</span><span id="crop-conf">—</span></div>
-            <div class="bar"><div class="bar__fill" id="crop-bar"></div></div>
-          </div>
-          <ul class="ranks" id="crop-top3"></ul>
-          <div class="notice" id="crop-ood" hidden></div>
+  <section class="band band--navy hero">
+    <div class="wrap">
+      <div>
+        <p class="hero__kicker">A smart farming assistant · <b>built for Ghana</b></p>
+        <h1>Know what to plant. Get answers you can trust.</h1>
+        <p class="hero__lead">FarmWise recommends a crop from your field's soil and weather, and
+          answers farming questions from real guides. It runs entirely on local AI models,
+          so it works offline once it is set up.</p>
+        <div class="hero__cta">
+          <a class="btn btn--light btn--lg" href="/crop">Recommend a crop</a>
+          <a class="btn btn--ghost btn--lg" href="/chat">Ask the assistant</a>
         </div>
       </div>
-    </section>
-  </main>
+      <svg class="hero__art" viewBox="0 0 420 380" role="img" aria-label="A seedling growing from soil">
+        <defs>
+          <linearGradient id="leafA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2fd98a"/><stop offset="1" stop-color="#1f9d55"/></linearGradient>
+          <linearGradient id="leafB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#36c6dd"/><stop offset="1" stop-color="#01a7c2"/></linearGradient>
+        </defs>
+        <circle cx="210" cy="178" r="152" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)"/>
+        <circle cx="300" cy="86" r="30" fill="rgba(54,198,221,0.35)"/>
+        <ellipse cx="210" cy="314" rx="104" ry="17" fill="rgba(1,167,194,0.20)"/>
+        <path d="M112 300 Q210 282 308 300 L308 316 Q210 300 112 316 Z" fill="rgba(255,255,255,0.16)"/>
+        <path class="sprout-stem" d="M210 314 C210 262 210 220 210 178" stroke="#bfefc9" stroke-width="7" stroke-linecap="round" fill="none"/>
+        <path class="sprout-leaf" d="M210 224 C168 219 138 234 124 266 C168 270 202 252 210 224 Z" fill="url(#leafA)"/>
+        <path class="sprout-leaf" d="M210 198 C252 188 288 198 304 228 C262 238 224 228 210 198 Z" fill="url(#leafB)" style="animation-delay:.4s"/>
+        <circle class="sprout-leaf" cx="210" cy="176" r="13" fill="#2fd98a"/>
+        <circle cx="120" cy="120" r="4" fill="#36c6dd"/>
+        <circle cx="322" cy="150" r="4" fill="#36c6dd"/>
+        <circle cx="300" cy="92" r="3" fill="#fff" opacity=".6"/>
+      </svg>
+    </div>
+  </section>
+
+  <section class="band band--surface section">
+    <div class="wrap">
+      <div class="section__head">
+        <h2>From a field reading to a confident decision</h2>
+        <p>Three steps, start to finish.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step__n">Step 1</div>
+          <h3>Measure your field</h3>
+          <p>Enter the soil nutrients and weather you can measure: nitrogen, phosphorus,
+            potassium, temperature, humidity, pH and rainfall.</p>
+        </div>
+        <div class="step">
+          <div class="step__n">Step 2</div>
+          <h3>The model weighs it up</h3>
+          <p>A Random Forest trained on thousands of records compares your field with the
+            conditions each crop prefers.</p>
+        </div>
+        <div class="step">
+          <div class="step__n">Step 3</div>
+          <h3>Act, and ask</h3>
+          <p>See the recommended crop and how sure the model is, then ask follow-up questions
+            answered from trusted farming guides.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band section">
+    <div class="wrap">
+      <div class="section__head">
+        <h2>Two tools, one assistant</h2>
+        <p>A classic machine-learning model for recommendations, and a retrieval assistant for questions.</p>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <svg class="feature__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 21V9M12 9c0-3-2.5-5.5-6-5.5C6 6.5 8.5 9 12 9Zm0 0c0-2.6 2.2-5 5.5-5C17.5 6.6 15.3 9 12 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3>Crop recommendation</h3>
+          <p>Turn seven field readings into a crop recommendation, with the model's confidence,
+            the runner-up crops, and a warning when your inputs fall outside what it learned.</p>
+          <a class="btn" href="/crop">Open the crop model</a>
+        </div>
+        <div class="feature">
+          <svg class="feature__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 5h16v11H9l-5 4V5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <h3>Farming Q&amp;A</h3>
+          <p>Ask about crops, soil, pests and planting times. Grounded answers cite the guide
+            they came from, and the assistant says when a question is not covered.</p>
+          <a class="btn" href="/chat">Open the chat</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band band--surface section--tight">
+    <div class="wrap partners">
+      <span class="partners__label">Built with</span>
+      <div class="partners__names">
+        <span>Africode Lab</span>
+        <span>Accra Digital Skills</span>
+        <span>Mobile Web Ghana</span>
+      </div>
+    </div>
+  </section>
 
   <footer class="footer">
     <div class="wrap footer__row">
+      <div>
+        <div class="footer__brand">
+          <svg class="brand__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 30V15" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M16 18C16 12.5 11.5 8 5 8c0 5.5 4.5 10 11 10Z" fill="#01a7c2"/>
+            <path d="M16 15c0-4.4 4-8.5 10-8.5 0 4.4-4 8.5-10 8.5Z" fill="#1f9d55"/>
+          </svg>
+          <span class="brand__name">Farm<span>Wise</span></span>
+        </div>
+        <p class="footer__note">FarmWise runs on local AI models. Recommendations are a starting
+          point for a conversation with a local extension officer, not a substitute for it.</p>
+      </div>
       <div class="footer__orgs">
-        <span>Africode Lab</span><span class="sep">/</span>
-        <span>Accra Digital Skills</span><span class="sep">/</span>
+        <b>Built with</b>
+        <span>Africode Lab</span>
+        <span>Accra Digital Skills</span>
         <span>Mobile Web Ghana</span>
       </div>
-      <p class="footer__note">FarmWise runs on local AI models. Recommendations are a
-        starting point, not a substitute for local agronomic advice.</p>
     </div>
   </footer>
 
-  <script src="/static/crop.js"></script>
 </body>
 </html>
