@@ -13,9 +13,31 @@ async function postJSON(url, body) {
 }
 
 const fmtPct = (x) => (x * 100).toFixed(1) + "%";
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const form = document.getElementById("crop-form");
 const result = document.getElementById("crop-result");
+
+// Re-play a CSS entrance animation on an element that is already in the DOM.
+function replay(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth; // force reflow so the animation restarts
+  el.classList.add(cls);
+}
+
+// Animate a percentage from 0 to the target value.
+function countUp(el, target) {
+  if (reduceMotion) { el.textContent = fmtPct(target); return; }
+  const start = performance.now();
+  const dur = 600;
+  function step(now) {
+    const t = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = fmtPct(target * eased);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -24,8 +46,7 @@ form.addEventListener("submit", async (e) => {
   new FormData(form).forEach((v, k) => (body[k] = parseFloat(v)));
 
   btn.disabled = true;
-  const label = btn.textContent;
-  btn.textContent = "Working…";
+  btn.classList.add("is-loading");
   try {
     const pred = await postJSON("/api/predict", body);
     render(pred);
@@ -33,15 +54,18 @@ form.addEventListener("submit", async (e) => {
     showError(err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = label;
+    btn.classList.remove("is-loading");
   }
 });
 
 function render(pred) {
   result.hidden = false;
+  replay(result, "reveal");
   document.getElementById("crop-name").textContent = pred.crop;
-  document.getElementById("crop-conf").textContent = fmtPct(pred.confidence);
-  document.getElementById("crop-bar").style.width = fmtPct(pred.confidence);
+  countUp(document.getElementById("crop-conf"), pred.confidence);
+  const bar = document.getElementById("crop-bar");
+  bar.style.width = "0";
+  requestAnimationFrame(() => { bar.style.width = fmtPct(pred.confidence); });
 
   const chip = document.getElementById("crop-chip");
   chip.hidden = false;
