@@ -273,6 +273,18 @@ def predict(inp: CropIn) -> dict:
     return pred.to_dict()
 
 
+@app.get("/api/crop-conditions")
+def crop_conditions() -> dict:
+    """Per-crop and overall feature ranges (from the dataset) for the crop UI:
+    slider bounds and the 'your input vs this crop' chart."""
+    import json
+
+    path = config.DATA_DIR / "crop_conditions.json"
+    if path.exists():
+        return json.loads(path.read_text())
+    return {"features": [], "units": {}, "ranges": {}, "crops": {}}
+
+
 @app.post("/api/ask")
 def ask_endpoint(inp: QuestionIn) -> dict:
     try:

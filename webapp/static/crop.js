@@ -18,6 +18,39 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 const form = document.getElementById("crop-form");
 const result = document.getElementById("crop-result");
 
+const NAMES = { N: "Nitrogen", P: "Phosphorus", K: "Potassium", temperature: "Temperature",
+  humidity: "Humidity", ph: "Soil pH", rainfall: "Rainfall" };
+let CONDITIONS = null;
+
+function fmtVal(feature, v) {
+  const unit = (CONDITIONS && CONDITIONS.units[feature]) || "";
+  const step = feature === "N" || feature === "P" || feature === "K" || feature === "rainfall" ? 0 : 1;
+  const num = step === 0 ? Math.round(v) : v.toFixed(1);
+  return unit ? `${num} ${unit}` : `${num}`;
+}
+
+// Live value readouts for the sliders, and refine slider bounds from the data.
+function initSliders() {
+  form.querySelectorAll('input[type="range"]').forEach((input) => {
+    const feature = input.name;
+    const valEl = form.querySelector(`[data-val="${feature}"]`);
+    const sync = () => { if (valEl) valEl.textContent = fmtVal(feature, parseFloat(input.value)); };
+    input.addEventListener("input", sync);
+    if (CONDITIONS && CONDITIONS.ranges[feature]) {
+      const r = CONDITIONS.ranges[feature];
+      const pad = Math.max((r.max - r.min) * 0.12, 1);
+      input.min = Math.max(0, Math.floor(r.min - pad));
+      input.max = Math.ceil(r.max + pad);
+    }
+    sync();
+  });
+}
+
+fetch("/api/crop-conditions")
+  .then((r) => r.json())
+  .then((d) => { CONDITIONS = d && d.features && d.features.length ? d : null; initSliders(); })
+  .catch(() => initSliders());
+
 // Re-play a CSS entrance animation on an element that is already in the DOM.
 function replay(el, cls) {
   el.classList.remove(cls);
@@ -49,7 +82,7 @@ form.addEventListener("submit", async (e) => {
   btn.classList.add("is-loading");
   try {
     const pred = await postJSON("/api/predict", body);
-    render(pred);
+    render(pred, body);
   } catch (err) {
     showError(err.message);
   } finally {
@@ -60,7 +93,7 @@ form.addEventListener("submit", async (e) => {
 
 const empty = document.getElementById("crop-empty");
 
-function render(pred) {
+function render(pred, inputs) {
   if (empty) empty.hidden = true;
   result.hidden = false;
   replay(result, "reveal");
@@ -96,12 +129,52 @@ function render(pred) {
   } else {
     ood.hidden = true;
   }
+
+  renderConditions(pred.crop, inputs);
+}
+
+// Chart: for the recommended crop, show each feature's typical range and where
+// the user's field sits relative to it (green inside the range, red outside).
+function renderConditions(crop, inputs) {
+  const box = document.getElementById("crop-conditions");
+  const cond = CONDITIONS && CONDITIONS.crops[crop];
+  if (!cond || !inputs) { box.hidden = true; return; }
+
+  document.getElementById("cond-crop").textContent = crop;
+  const rows = document.getElementById("cond-rows");
+  rows.innerHTML = "";
+
+  CONDITIONS.features.forEach((f) => {
+    const c = cond[f];
+    const v = inputs[f];
+    const lo = Math.min(c.min, v), hi = Math.max(c.max, v);
+    const span = (hi - lo) || 1;
+    const pad = span * 0.12;
+    const sMin = lo - pad, sMax = hi + pad;
+    const pct = (x) => ((x - sMin) / (sMax - sMin)) * 100;
+    const bandL = pct(c.min), bandW = Math.max(1.5, pct(c.max) - pct(c.min));
+    const mark = Math.max(0, Math.min(100, pct(v)));
+    const inBand = v >= c.min && v <= c.max;
+
+    const row = document.createElement("div");
+    row.className = "cond-row";
+    row.innerHTML =
+      `<span class="cond-label">${NAMES[f]}</span>` +
+      `<span class="cond-track">` +
+        `<span class="cond-band" style="left:${bandL}%;width:${bandW}%"></span>` +
+        `<span class="cond-mark ${inBand ? "in" : "out"}" style="left:${mark}%"></span>` +
+      `</span>` +
+      `<span class="cond-val">${fmtVal(f, v)}</span>`;
+    rows.appendChild(row);
+  });
+  box.hidden = false;
 }
 
 function showError(msg) {
   if (empty) empty.hidden = true;
   result.hidden = false;
   document.getElementById("crop-top3").innerHTML = "";
+  document.getElementById("crop-conditions").hidden = true;
   const ood = document.getElementById("crop-ood");
   ood.hidden = false;
   ood.innerHTML = `<span class="error">${msg}</span>`;

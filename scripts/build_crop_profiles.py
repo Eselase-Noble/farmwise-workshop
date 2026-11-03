@@ -66,16 +66,53 @@ def build_markdown() -> str:
     return "\n".join(lines)
 
 
+UNITS = {"N": "", "P": "", "K": "", "temperature": "°C", "humidity": "%", "ph": "", "rainfall": "mm"}
+
+
+def build_conditions() -> dict:
+    """Machine-readable per-crop ranges + overall ranges, for the web UI.
+
+    Committed as data/crop_conditions.json so the web app can draw sliders and the
+    'your input vs this crop' chart without needing the raw CSV at runtime.
+    """
+    df = load_crop_dataset()
+    crops = sorted(df[TARGET_COLUMN].unique())
+    ranges = {
+        col: {"min": round(float(df[col].min()), 2), "max": round(float(df[col].max()), 2)}
+        for col in FEATURE_COLUMNS
+    }
+    crop_stats = {}
+    for crop in crops:
+        sub = df[df[TARGET_COLUMN] == crop]
+        crop_stats[crop] = {
+            col: {
+                "min": round(float(sub[col].min()), 2),
+                "max": round(float(sub[col].max()), 2),
+                "mean": round(float(sub[col].mean()), 2),
+            }
+            for col in FEATURE_COLUMNS
+        }
+    return {"features": FEATURE_COLUMNS, "units": UNITS, "ranges": ranges, "crops": crop_stats}
+
+
 def main() -> int:
+    import json
+
     try:
         md = build_markdown()
+        conditions = build_conditions()
     except FileNotFoundError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
-    out = config.GUIDES_DIR / "crop_profiles.md"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(md)
-    print(f"Wrote {out} ({len(md)} chars)")
+
+    config.GUIDES_DIR.mkdir(parents=True, exist_ok=True)
+    md_out = config.GUIDES_DIR / "crop_profiles.md"
+    md_out.write_text(md)
+    print(f"Wrote {md_out} ({len(md)} chars)")
+
+    json_out = config.DATA_DIR / "crop_conditions.json"
+    json_out.write_text(json.dumps(conditions, indent=2))
+    print(f"Wrote {json_out} ({len(conditions['crops'])} crops)")
     return 0
 
 
