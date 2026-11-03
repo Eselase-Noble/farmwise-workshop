@@ -8,7 +8,7 @@
 
 # --- core / ML ---
 pandas==3.1.0
-numpy==2.5.4
+numpy==2.4.6          # 2.5.x needs Python >=3.12; 2.4.6 keeps the 3.11 floor
 scikit-learn==1.9.1
 joblib==1.6.0
 matplotlib==3.11.2
