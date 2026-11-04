@@ -292,3 +292,96 @@ def chat(
         latest, results, model_name=model_name, max_tokens=max_tokens,
         history=earlier, language=language,
     )
+
+
+def chat_stream(
+    messages: list[dict],
+    *,
+    use_rag: bool = True,
+    store: Optional[VectorStore] = None,
+    top_k: Optional[int] = None,
+    model: Optional[str] = None,
+    max_tokens: Optional[int] = None,
+    language: str | None = None,
+):
+    """Streaming twin of :func:`chat`. Yields event dicts as the answer forms:
+
+    * ``{"type": "token", "text": ...}`` — a piece of the answer
+    * ``{"type": "done", "answer", "used_context", "sources", "model"}`` — the end
+    * ``{"type": "error", "detail": ...}`` — Ollama was unreachable or failed
+
+    The grounding and citation rules match :func:`chat` exactly; only the
+    delivery differs. Sources are known only once the full answer is in (a
+    refusal lists none), so they ride on the final ``done`` event.
+    """
+    model_name = model or config.LLM_MODEL
+    user_turns = [m for m in messages if m.get("role") == "user"]
+    latest = user_turns[-1]["content"] if user_turns else ""
+    recent = messages[-6:]
+    history = "\n".join(
+        f"{'Farmer' if m.get('role') == 'user' else 'FarmWise'}: {m.get('content', '')}"
+        for m in recent
+    )
+
+    def _done(answer: str, used_context: bool, sources: list[SourceChunk]) -> dict:
+        return {
+            "type": "done",
+            "answer": answer,
+            "used_context": used_context,
+            "sources": [s.to_dict() for s in sources],
+            "model": model_name,
+        }
+
+    try:
+        if not use_rag:
+            prompt = f"Conversation so far:\n{history}\n\nReply as FarmWise to the farmer's last message."
+            parts: list[str] = []
+            for delta in llm_client.generate_stream(
+                prompt, system=_with_language(PLAIN_SYSTEM_PROMPT, language),
+                model=model_name, max_tokens=max_tokens, repeat_penalty=_repeat_penalty(language),
+            ):
+                parts.append(delta)
+                yield {"type": "token", "text": delta}
+            yield _done("".join(parts).strip(), False, [])
+            return
+
+        store = store or get_default_store()
+        k = top_k if top_k is not None else config.TOP_K
+        queries = [latest]
+        if len(user_turns) > 1:
+            queries.append(f"{user_turns[-2]['content']} {latest}")
+        results = _retrieve(queries, store, k)
+
+        if not results:
+            yield {"type": "token", "text": NO_ANSWER}
+            yield _done(NO_ANSWER, True, [])
+            return
+
+        prompt = build_prompt(latest, results)
+        earlier = "\n".join(
+            f"{'Farmer' if m.get('role') == 'user' else 'FarmWise'}: {m.get('content', '')}"
+            for m in messages[:-1][-6:]
+        )
+        if earlier:
+            prompt = f"Conversation so far:\n{earlier}\n\n{prompt}"
+
+        parts = []
+        for delta in llm_client.generate_stream(
+            prompt, system=_with_language(RAG_SYSTEM_PROMPT, language),
+            model=model_name, max_tokens=max_tokens, repeat_penalty=_repeat_penalty(language),
+        ):
+            parts.append(delta)
+            yield {"type": "token", "text": delta}
+        answer = "".join(parts).strip()
+        sources = [] if _is_refusal(answer) else [
+            SourceChunk(
+                source=r.metadata.get("source", "?"),
+                chunk_index=int(r.metadata.get("chunk_index", -1)),
+                text=r.document,
+                score=r.score,
+            )
+            for r in results
+        ]
+        yield _done(answer, True, sources)
+    except llm_client.OllamaError as exc:
+        yield {"type": "error", "detail": str(exc)}

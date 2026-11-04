@@ -9,9 +9,10 @@ error instead of a raw connection traceback — important for a live demo.
 
 from __future__ import annotations
 
+import json
 import logging
 import time
-from typing import Optional
+from typing import Iterator, Optional
 
 import requests
 
@@ -156,6 +157,65 @@ def generate(
         payload["system"] = system
     data = _post("/api/generate", payload, host=host)
     return (data.get("response") or "").strip()
+
+
+def generate_stream(
+    prompt: str,
+    *,
+    system: Optional[str] = None,
+    model: Optional[str] = None,
+    max_tokens: Optional[int] = None,
+    temperature: Optional[float] = None,
+    repeat_penalty: Optional[float] = None,
+    host: Optional[str] = None,
+) -> Iterator[str]:
+    """Yield the completion for a prompt token-by-token as Ollama produces it.
+
+    Unlike :func:`generate` this does not retry: a stream cannot be safely
+    resumed mid-way. Connection and model errors raise before any token is
+    yielded, so the caller can still turn an early failure into a clean message.
+    """
+    options = {
+        "num_predict": max_tokens if max_tokens is not None else config.MAX_TOKENS,
+        "temperature": temperature if temperature is not None else config.LLM_TEMPERATURE,
+    }
+    if repeat_penalty is not None:
+        options["repeat_penalty"] = repeat_penalty
+    payload = {"model": model or config.LLM_MODEL, "prompt": prompt, "stream": True, "options": options}
+    if system:
+        payload["system"] = system
+
+    base = host or config.OLLAMA_HOST
+    url = f"{base.rstrip('/')}/api/generate"
+    try:
+        resp = requests.post(url, json=payload, stream=True, timeout=(config.OLLAMA_CONNECT_TIMEOUT, config.OLLAMA_TIMEOUT))
+    except requests.exceptions.ConnectionError as exc:
+        raise OllamaNotRunningError(_NOT_RUNNING_HINT.format(host=base)) from exc
+    except requests.exceptions.Timeout as exc:
+        raise OllamaError(f"Ollama request timed out after {config.OLLAMA_TIMEOUT}s.") from exc
+
+    if resp.status_code == 404:
+        raise OllamaModelNotFoundError(_MODEL_HINT.format(model=payload["model"]))
+    if not resp.ok:
+        raise OllamaError(f"Ollama returned {resp.status_code}: {resp.text[:300]}")
+
+    for line in resp.iter_lines():
+        if not line:
+            continue
+        try:
+            data = json.loads(line)
+        except ValueError:
+            continue
+        if data.get("error"):
+            err = data["error"]
+            if "not found" in err.lower():
+                raise OllamaModelNotFoundError(_MODEL_HINT.format(model=payload["model"]))
+            raise OllamaError(f"Ollama error: {err}")
+        chunk = data.get("response")
+        if chunk:
+            yield chunk
+        if data.get("done"):
+            break
 
 
 def chat(

@@ -15,6 +15,7 @@ through :func:`require_admin`.
 from __future__ import annotations
 
 import ipaddress
+import json
 import logging
 import logging.handlers
 import os
@@ -30,7 +31,7 @@ from urllib.parse import urlparse
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
@@ -38,7 +39,7 @@ from farmwise import config
 from farmwise.i18n import LANGUAGES, normalise_language
 from farmwise.llm.client import OllamaError, is_ollama_running
 from farmwise.ml.predict import CropFeatures, ModelNotFoundError, predict_crop
-from farmwise.rag.assistant import ask, ask_without_rag, chat
+from farmwise.rag.assistant import ask, ask_without_rag, chat, chat_stream
 from farmwise.rag.indexer import index_document, index_url
 from farmwise.rag.loader import SUPPORTED_SUFFIXES, load_file
 from farmwise.rag.vector_store import ChromaVectorStore
@@ -503,6 +504,32 @@ def chat_endpoint(inp: ChatIn) -> dict:
     except OllamaError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     return answer.to_dict()
+
+
+@app.post("/api/chat/stream")
+def chat_stream_endpoint(inp: ChatIn) -> StreamingResponse:
+    """Server-sent events version of /api/chat: the answer streams token by token.
+
+    Each line is ``data: {json}`` where the JSON is a token, a final ``done``
+    payload (with sources), or an ``error``. Failures become an ``error`` event
+    rather than an HTTP status, because the response has already started.
+    """
+    messages = [m.model_dump() for m in inp.messages]
+    language = normalise_language(inp.language)
+
+    def event_source():
+        try:
+            for event in chat_stream(messages, use_rag=inp.use_rag, language=language):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as exc:  # last resort: never leave the stream hanging
+            logger.exception("chat stream failed")
+            yield f"data: {json.dumps({'type': 'error', 'detail': str(exc)})}\n\n"
+
+    return StreamingResponse(
+        event_source(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # --- knowledge base (ingestion) --------------------------------------------

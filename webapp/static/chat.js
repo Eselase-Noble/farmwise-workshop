@@ -61,41 +61,124 @@ form.addEventListener("submit", async (e) => {
   if (!text) return;
 
   const useRag = currentMode() === "rag";
+  const lang = currentLanguage();
   addMessage("user", text);
   history.push({ role: "user", content: text });
   input.value = "";
   input.style.height = "auto";
 
-  const thinking = addThinking();
   sendBtn.disabled = true;
   try {
-    const data = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: history.slice(-MAX_HISTORY),
-        use_rag: useRag,
-        language: currentLanguage(),
-      }),
-    }).then(async (r) => {
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.detail || `Request failed (${r.status})`);
-      return d;
-    });
-    thinking.remove();
-    const answer = cleanMarkdown(data.answer);
-    addMessage("bot", answer, data.sources, data.used_context, false, useRag ? "rag" : "bare");
-    history.push({ role: "assistant", content: answer });
-  } catch (err) {
-    thinking.remove();
-    addMessage("bot", err.message, [], false, true);
+    await streamAnswer(useRag, lang);
   } finally {
     sendBtn.disabled = false;
     input.focus();
   }
 });
 
-const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Stream the answer token by token from /api/chat/stream (server-sent events),
+// showing it as it arrives instead of waiting for the whole reply.
+async function streamAnswer(useRag, lang) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg msg--bot";
+  const badge = document.createElement("span");
+  badge.className = "msg__mode " + (useRag ? "is-rag" : "is-bare");
+  badge.textContent = useRag ? "RAG · grounded" : "Bare chatbot";
+  wrap.appendChild(badge);
+  const bubble = document.createElement("div");
+  bubble.className = "msg__bubble";
+  bubble.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
+  wrap.appendChild(bubble);
+  log.appendChild(wrap);
+  log.scrollTop = log.scrollHeight;
+
+  let raw = "";
+  let started = false;
+  let final = null;
+
+  try {
+    const resp = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: history.slice(-MAX_HISTORY), use_rag: useRag, language: lang }),
+    });
+    if (!resp.ok || !resp.body) {
+      const d = await resp.json().catch(() => ({}));
+      throw new Error(d.detail || `Request failed (${resp.status})`);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop();
+      for (const chunk of chunks) {
+        const line = chunk.split("\n").find((l) => l.startsWith("data:"));
+        if (!line) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(5).trim()); } catch (_) { continue; }
+        if (evt.type === "token") {
+          if (!started) { started = true; bubble.textContent = ""; }
+          raw += evt.text;
+          bubble.textContent = raw;
+          log.scrollTop = log.scrollHeight;
+        } else if (evt.type === "done") {
+          final = evt;
+        } else if (evt.type === "error") {
+          throw new Error(evt.detail || "The assistant failed.");
+        }
+      }
+    }
+  } catch (err) {
+    bubble.textContent = err.message;
+    bubble.classList.add("is-idk");
+    return;
+  }
+
+  const answer = cleanMarkdown(final ? final.answer : raw);
+  bubble.textContent = answer;
+  if (/don't know based on the farming guides/i.test(answer)) bubble.classList.add("is-idk");
+  history.push({ role: "assistant", content: answer });
+  finishBotMessage(wrap, answer, final && final.sources, final && final.used_context);
+  log.scrollTop = log.scrollHeight;
+}
+
+// Add the Copy button and source chips under a finished bot message.
+function finishBotMessage(wrap, text, sources, usedContext) {
+  const foot = document.createElement("div");
+  foot.className = "msg__foot";
+  const copy = document.createElement("button");
+  copy.className = "msg__copy";
+  copy.textContent = "Copy";
+  copy.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; }
+    catch (_) { copy.textContent = "Copy failed"; }
+    setTimeout(() => (copy.textContent = "Copy"), 1500);
+  });
+  foot.appendChild(copy);
+  wrap.appendChild(foot);
+
+  if (usedContext && sources && sources.length) {
+    const box = document.createElement("div");
+    box.className = "msg__sources";
+    const seen = new Set();
+    sources.forEach((s) => {
+      if (seen.has(s.source)) return;
+      seen.add(s.source);
+      const chip = document.createElement("span");
+      chip.className = "src-chip";
+      chip.title = s.source;
+      chip.innerHTML = SRC_ICONS[sourceType(s.source)];
+      chip.appendChild(document.createTextNode(prettySource(s.source)));
+      box.appendChild(chip);
+    });
+    wrap.appendChild(box);
+  }
+}
 
 // The model is told to avoid Markdown, but strip any stray markers just in case
 // so the plain-text bubble never shows raw ** or # characters.
@@ -126,82 +209,15 @@ function prettySource(src) {
   return src;
 }
 
-// Reveal bot text character by character (skipped for reduced motion / long text).
-function typeOut(el, text, done) {
-  if (reduceMotion || text.length > 500) { el.textContent = text; done && done(); return; }
-  let i = 0;
-  (function tick() {
-    el.textContent = text.slice(0, i++);
-    log.scrollTop = log.scrollHeight;
-    if (i <= text.length) setTimeout(tick, 11);
-    else done && done();
-  })();
-}
-
-function addMessage(role, text, sources, usedContext, isError, mode) {
+// Append a simple message bubble. Bot answers are rendered by streamAnswer();
+// this handles the user's own messages (and any plain bot notice).
+function addMessage(role, text) {
   const wrap = document.createElement("div");
   wrap.className = "msg " + (role === "user" ? "msg--user" : "msg--bot");
-
-  if (role === "bot" && mode) {
-    const badge = document.createElement("span");
-    badge.className = "msg__mode " + (mode === "rag" ? "is-rag" : "is-bare");
-    badge.textContent = mode === "rag" ? "RAG · grounded" : "Bare chatbot";
-    wrap.appendChild(badge);
-  }
-
   const bubble = document.createElement("div");
   bubble.className = "msg__bubble";
-  if (isError || (role === "bot" && /don't know based on the farming guides/i.test(text))) {
-    bubble.classList.add("is-idk");
-  }
+  bubble.textContent = text;
   wrap.appendChild(bubble);
-  log.appendChild(wrap);
-  log.scrollTop = log.scrollHeight;
-
-  if (role !== "bot") { bubble.textContent = text; return wrap; }
-
-  // Bot: type the answer, then add the copy button and source chips.
-  typeOut(bubble, text, () => {
-    if (isError) return;
-    const foot = document.createElement("div");
-    foot.className = "msg__foot";
-
-    const copy = document.createElement("button");
-    copy.className = "msg__copy";
-    copy.textContent = "Copy";
-    copy.addEventListener("click", async () => {
-      try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; }
-      catch (_) { copy.textContent = "Copy failed"; }
-      setTimeout(() => (copy.textContent = "Copy"), 1500);
-    });
-    foot.appendChild(copy);
-    wrap.appendChild(foot);
-
-    if (usedContext && sources && sources.length) {
-      const box = document.createElement("div");
-      box.className = "msg__sources";
-      const seen = new Set();
-      sources.forEach((s) => {
-        if (seen.has(s.source)) return;
-        seen.add(s.source);
-        const chip = document.createElement("span");
-        chip.className = "src-chip";
-        chip.title = s.source;
-        chip.innerHTML = SRC_ICONS[sourceType(s.source)];
-        chip.appendChild(document.createTextNode(prettySource(s.source)));
-        box.appendChild(chip);
-      });
-      wrap.appendChild(box);
-    }
-    log.scrollTop = log.scrollHeight;
-  });
-  return wrap;
-}
-
-function addThinking() {
-  const wrap = document.createElement("div");
-  wrap.className = "msg msg--bot";
-  wrap.innerHTML = '<div class="msg__bubble"><span class="typing"><span></span><span></span><span></span></span></div>';
   log.appendChild(wrap);
   log.scrollTop = log.scrollHeight;
   return wrap;

@@ -2,7 +2,7 @@
 // offline. Live AI calls still need a connection; the UI surfaces that.
 "use strict";
 
-const CACHE = "farmwise-v3";
+const CACHE = "farmwise-v4";
 
 // The shell: pages and static assets that make the app load without a network.
 const PRECACHE = [
