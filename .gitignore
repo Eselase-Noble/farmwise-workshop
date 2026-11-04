@@ -15,6 +15,9 @@ env/
 # ChromaDB persistent store (rebuilt by scripts/build_index.py)
 /chroma/
 
+# Web app request/error logs
+/logs/
+
 # Trained model artifacts are committed on purpose (small), so NOT ignored:
 #   models/crop_model.joblib
 #   models/crop_model_metadata.json
@@ -22,6 +25,11 @@ env/
 # The crop dataset CSV is large-ish / externally sourced — keep it out of git.
 # Presenter downloads it into data/raw/ (see data/raw/README.md).
 data/raw/*.csv
+
+# Uploaded / downloaded guide PDFs are large third-party binaries. The sample
+# .md guides are committed; real sources are reproduced from
+# data/knowledge_sources.txt, so keep PDFs out of the public repo.
+data/guides/*.pdf
 
 # OS / editor
 .DS_Store

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="FarmWise">
+  <defs>
+    <linearGradient id="fwTile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a1a4a"/>
+      <stop offset="1" stop-color="#061037"/>
+    </linearGradient>
+    <linearGradient id="fwLeaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2fd98a"/>
+      <stop offset="1" stop-color="#1f9d55"/>
+    </linearGradient>
+    <linearGradient id="fwCyan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#36c6dd"/>
+      <stop offset="1" stop-color="#01a7c2"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#fwTile)"/>
+  <path d="M15 50 Q32 46 49 50" stroke="#36c6dd" stroke-width="3.2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M32 50 C32 39 32 32 32 23" stroke="url(#fwLeaf)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M32 37 C22 35.5 15 39 12 47 C22 47.5 29.5 43 32 37 Z" fill="url(#fwLeaf)"/>
+  <path d="M32 29 C42 24 50 26.5 53 35 C43 38.5 35 35.5 32 29 Z" fill="url(#fwCyan)"/>
+  <circle cx="32" cy="19" r="6" fill="#2fd98a"/>
+  <circle cx="32" cy="19" r="2.6" fill="#061037"/>
+</svg>

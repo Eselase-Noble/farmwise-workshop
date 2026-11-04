@@ -9,10 +9,27 @@ const sendBtn = document.getElementById("chat-send");
 const history = []; // [{role, content}]
 const MAX_HISTORY = 20; // the assistant only needs the recent turns
 
+const langSel = document.getElementById("chat-lang");
+
 function currentMode() {
   const el = document.querySelector('input[name="mode"]:checked');
   return el && el.value === "bare" ? "bare" : "rag";
 }
+
+function currentLanguage() {
+  return langSel ? langSel.value : "en";
+}
+
+// The languages are listed in the HTML, so the selector always renders even
+// offline. Here we just restore the last choice and remember new ones.
+(function initLanguages() {
+  if (!langSel) return;
+  const saved = localStorage.getItem("farmwise_lang");
+  if (saved && [...langSel.options].some((o) => o.value === saved)) langSel.value = saved;
+  langSel.addEventListener("change", () =>
+    localStorage.setItem("farmwise_lang", langSel.value)
+  );
+})();
 
 // Update the hint line when the mode changes.
 document.querySelectorAll('input[name="mode"]').forEach((r) =>
@@ -55,7 +72,11 @@ form.addEventListener("submit", async (e) => {
     const data = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history.slice(-MAX_HISTORY), use_rag: useRag }),
+      body: JSON.stringify({
+        messages: history.slice(-MAX_HISTORY),
+        use_rag: useRag,
+        language: currentLanguage(),
+      }),
     }).then(async (r) => {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.detail || `Request failed (${r.status})`);

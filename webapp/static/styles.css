@@ -428,3 +428,77 @@ select:focus-visible, .suggest__chip:focus-visible {
   .cond-label { font-size: 11.5px; }
   .hero__cta .btn { width: 100%; }
 }
+
+/* ------------------------------------------------------------------ */
+/* Additions: status banner, button variants, weather fill, history,  */
+/* chat language selector.                                            */
+/* ------------------------------------------------------------------ */
+
+/* Live service-status banner (shown only on a problem) */
+.status-banner {
+  font-family: var(--body); font-size: 14px; font-weight: 600;
+  text-align: center; padding: 10px 18px; color: #fff;
+  line-height: 1.4;
+}
+.status-banner.is-error { background: var(--red); }
+.status-banner.is-warn { background: #b26a00; }
+.status-banner.is-info { background: var(--cyan-700); }
+
+/* Secondary / small buttons (on light panels) */
+.btn--soft {
+  background: var(--surface-2); color: var(--navy);
+  box-shadow: none; border: 1px solid var(--line);
+}
+.btn--soft:hover:not(:disabled) { background: #dde4f0; box-shadow: none; transform: translateY(-1px); }
+.btn--sm { padding: 9px 16px; font-size: 13.5px; }
+
+/* Weather auto-fill row on the crop form */
+.weather-fill { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.weather-fill input[type="text"] {
+  flex: 1; min-width: 160px; font-family: var(--body); font-size: 15px;
+  padding: 11px 14px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--paper); color: var(--ink);
+}
+.weather-fill input[type="text"]:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 4px var(--ring); }
+.weather-note { font-size: 13px; color: var(--muted); margin: -4px 0 14px; line-height: 1.45; }
+.weather-note.is-ok { color: var(--leaf-700); }
+.weather-note.is-error { color: var(--red); }
+.weather-note.is-busy { color: var(--cyan-700); }
+
+/* Recommendation history */
+.history__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.history__actions { display: inline-flex; gap: 8px; }
+.history { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.hist-row {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.hist-row__crop { font-weight: 700; color: var(--navy); text-transform: capitalize; }
+.hist-row__conf { color: var(--cyan-700); font-weight: 600; margin-left: 6px; }
+.hist-row__fields { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 5px; }
+.hist-row__time { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* Chat header: language selector sits beside the mode toggle */
+.chat__controls { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.mode { position: relative; }   /* contain the absolutely-positioned radio inputs */
+.lang { display: inline-flex; align-items: center; gap: 8px; }
+.lang__label { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.lang select {
+  font-family: var(--body); font-size: 13.5px; font-weight: 600; color: var(--navy);
+  padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface-2); cursor: pointer; max-width: 150px;
+}
+.lang select:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 4px var(--ring); }
+
+@media (max-width: 720px) {
+  /* Stack the header so the title, language and mode toggle never collide */
+  .chat__head { flex-direction: column; align-items: flex-start; }
+  .chat__controls { width: 100%; justify-content: space-between; }
+}
+
+@media (max-width: 560px) {
+  .weather-fill input[type="text"] { min-width: 0; }
+  .hist-row { flex-direction: column; }
+  .hist-row__time { align-self: flex-start; }
+}

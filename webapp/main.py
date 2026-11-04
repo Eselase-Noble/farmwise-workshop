@@ -15,10 +15,14 @@ through :func:`require_admin`.
 from __future__ import annotations
 
 import ipaddress
+import logging
+import logging.handlers
 import os
 import re
 import secrets
 import tempfile
+import time
+from collections import deque
 from pathlib import Path
 from typing import Literal, Optional
 from urllib.parse import urlparse
@@ -31,6 +35,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from farmwise import config
+from farmwise.i18n import LANGUAGES, normalise_language
 from farmwise.llm.client import OllamaError, is_ollama_running
 from farmwise.ml.predict import CropFeatures, ModelNotFoundError, predict_crop
 from farmwise.rag.assistant import ask, ask_without_rag, chat
@@ -44,6 +49,67 @@ MAX_JSON_BODY_BYTES = 1024 * 1024
 UPLOAD_PATH = "/api/ingest/file"
 MULTIPART_OVERHEAD_BYTES = 1024 * 1024
 _READ_BLOCK_BYTES = 1024 * 1024
+
+# Endpoints worth rate limiting: the ones that call the model or fetch/ingest
+# content. Cheap reads (health, sources, static) are left alone.
+_RATE_LIMITED_PREFIXES = (
+    "/api/predict",
+    "/api/ask",
+    "/api/chat",
+    "/api/ingest",
+    "/api/weather",
+    "/api/sources/remove",
+)
+
+
+# --- logging ---------------------------------------------------------------
+
+logger = logging.getLogger("farmwise.webapp")
+
+
+def _configure_logging() -> None:
+    """Send request and error logs to the console and a rotating file.
+
+    Called once at import. A file that cannot be opened (read-only directory)
+    degrades to console-only rather than stopping the app from starting.
+    """
+    from farmwise import config
+
+    level = getattr(logging, config.LOG_LEVEL, logging.INFO)
+    root = logging.getLogger("farmwise")
+    root.setLevel(level)
+    if root.handlers:  # already configured (e.g. reload)
+        return
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+
+    console = logging.StreamHandler()
+    console.setFormatter(fmt)
+    root.addHandler(console)
+
+    try:
+        config.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            config.LOG_DIR / "webapp.log", maxBytes=2 * 1024 * 1024, backupCount=3
+        )
+        file_handler.setFormatter(fmt)
+        root.addHandler(file_handler)
+    except OSError as exc:  # pragma: no cover - environment dependent
+        root.warning("File logging disabled (%s); logging to console only.", exc)
+
+
+def _client_key(scope) -> str:
+    """Best-effort client identity for rate limiting.
+
+    Behind a proxy such as ngrok the socket peer is the tunnel, so prefer the
+    left-most X-Forwarded-For when present. This can be spoofed, so it is only
+    used to spread the limit across callers, never for access control.
+    """
+    headers = dict(scope.get("headers") or [])
+    forwarded = headers.get(b"x-forwarded-for", b"").decode(errors="ignore")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    client = scope.get("client")
+    return client[0] if client else "unknown"
 
 
 def _max_upload_bytes() -> int:
@@ -96,8 +162,96 @@ class BodySizeLimitMiddleware:
         await self.app(scope, limited_receive, send)
 
 
+class RateLimitMiddleware:
+    """A simple in-memory per-IP fixed-window limiter for the AI/ingest routes.
+
+    In-memory means it resets on restart and does not span multiple workers,
+    which is the right trade-off for a single-process demo. Returns 429 with a
+    ``Retry-After`` header when a client exceeds the window.
+    """
+
+    def __init__(self, app):
+        self.app = app
+        self._hits: dict[str, deque] = {}
+
+    async def __call__(self, scope, receive, send):
+        from farmwise import config
+
+        if scope["type"] != "http" or config.RATE_LIMIT_REQUESTS <= 0:
+            await self.app(scope, receive, send)
+            return
+        if not scope["path"].startswith(_RATE_LIMITED_PREFIXES):
+            await self.app(scope, receive, send)
+            return
+
+        now = time.monotonic()
+        window = config.RATE_LIMIT_WINDOW_SECONDS
+        key = _client_key(scope)
+        hits = self._hits.setdefault(key, deque())
+        while hits and hits[0] <= now - window:
+            hits.popleft()
+
+        if len(hits) >= config.RATE_LIMIT_REQUESTS:
+            retry_after = max(1, int(window - (now - hits[0])))
+            logger.warning("Rate limit hit by %s on %s", key, scope["path"])
+            response = JSONResponse(
+                {"detail": "Too many requests. Please slow down and try again shortly."},
+                status_code=429,
+                headers={"Retry-After": str(retry_after)},
+            )
+            await response(scope, receive, send)
+            return
+
+        hits.append(now)
+        await self.app(scope, receive, send)
+
+
+class RequestLogMiddleware:
+    """Log one line per request: client, method, path, status and duration."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        start = time.monotonic()
+        status_holder = {"code": 0}
+
+        async def send_wrapper(event):
+            if event["type"] == "http.response.start":
+                status_holder["code"] = event["status"]
+            await send(event)
+
+        try:
+            await self.app(scope, receive, send_wrapper)
+        except Exception:
+            duration = (time.monotonic() - start) * 1000
+            logger.exception(
+                "%s %s %s -> 500 (%.0f ms)",
+                _client_key(scope), scope.get("method", "?"), scope.get("path", "?"), duration,
+            )
+            raise
+        duration = (time.monotonic() - start) * 1000
+        logger.info(
+            "%s %s %s -> %d (%.0f ms)",
+            _client_key(scope), scope.get("method", "?"),
+            scope.get("path", "?"), status_holder["code"], duration,
+        )
+
+
+_configure_logging()
+
 app = FastAPI(title="FarmWise", description="Smart farming assistant (Session 2 web app)")
+# Starlette makes the last-added middleware the outermost. Adding the body-size
+# guard first and the request log last puts logging on the outside (so a 429 or
+# 500 is still logged), the rate limiter next, and the body-size guard closest
+# to the routes.
 app.add_middleware(BodySizeLimitMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(RequestLogMiddleware)
 
 
 @app.exception_handler(RequestValidationError)
@@ -182,6 +336,7 @@ class CropIn(BaseModel):
 class QuestionIn(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
     use_rag: bool = True
+    language: str = "en"
 
 
 class ChatMessage(BaseModel):
@@ -192,6 +347,7 @@ class ChatMessage(BaseModel):
 class ChatIn(BaseModel):
     messages: list[ChatMessage] = Field(..., min_length=1, max_length=50)
     use_rag: bool = True
+    language: str = "en"
 
     @field_validator("messages")
     @classmethod
@@ -237,6 +393,20 @@ def chat_page() -> FileResponse:
 @app.get("/knowledge")
 def knowledge_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "knowledge.html")
+
+
+@app.get("/sw.js")
+def service_worker() -> FileResponse:
+    """Serve the service worker from the root so it can control the whole origin.
+
+    A worker served from /static would be scoped to /static; the extra header
+    lets this one claim the pages at /, /crop, /chat and /knowledge.
+    """
+    return FileResponse(
+        STATIC_DIR / "sw.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
 
 
 # --- api -------------------------------------------------------------------
@@ -285,10 +455,38 @@ def crop_conditions() -> dict:
     return {"features": [], "units": {}, "ranges": {}, "crops": {}}
 
 
+@app.get("/api/languages")
+def languages() -> dict:
+    """Languages the assistant can answer in (for the chat UI selector)."""
+    return {"languages": [{"code": c, "name": n} for c, n in LANGUAGES.items()]}
+
+
+@app.get("/api/weather")
+def weather(
+    location: Optional[str] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+) -> dict:
+    """Current temperature/humidity and ~annual rainfall, to auto-fill the crop form."""
+    from farmwise.weather import WeatherError, weather_for
+
+    if not location and (latitude is None or longitude is None):
+        raise HTTPException(status_code=422, detail="Provide 'location' or 'latitude' and 'longitude'.")
+    try:
+        return weather_for(location=location, latitude=latitude, longitude=longitude)
+    except WeatherError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
 @app.post("/api/ask")
 def ask_endpoint(inp: QuestionIn) -> dict:
+    language = normalise_language(inp.language)
     try:
-        answer = ask(inp.question) if inp.use_rag else ask_without_rag(inp.question)
+        answer = (
+            ask(inp.question, language=language)
+            if inp.use_rag
+            else ask_without_rag(inp.question, language=language)
+        )
     except OllamaError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     return answer.to_dict()
@@ -297,7 +495,11 @@ def ask_endpoint(inp: QuestionIn) -> dict:
 @app.post("/api/chat")
 def chat_endpoint(inp: ChatIn) -> dict:
     try:
-        answer = chat([m.model_dump() for m in inp.messages], use_rag=inp.use_rag)
+        answer = chat(
+            [m.model_dump() for m in inp.messages],
+            use_rag=inp.use_rag,
+            language=normalise_language(inp.language),
+        )
     except OllamaError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     return answer.to_dict()

@@ -48,6 +48,40 @@ sample field so you can try it in one click. On the chat page, switch between
 "RAG · grounded" and "Bare chatbot" to see the difference between an answer
 backed by the guides and an answer from the model alone.
 
+## Added features
+
+Beyond the three core pages, this build adds:
+
+* **Installable, works offline.** The app ships a web manifest and a service
+  worker, so it can be installed on a phone and its pages open offline (live AI
+  answers still need a connection; the UI says so). The brand mark is a single
+  SVG (`static/logo.svg`) reused in the header, footer and favicon.
+* **Live status banner.** Every page polls `GET /api/health` and shows a banner
+  when Ollama is down, the crop model is untrained, or the knowledge base is
+  empty — so a failed demo tells you why instead of erroring mid-request.
+* **Weather auto-fill.** On the crop page, enter a town (or use your device
+  location) and `GET /api/weather` fills temperature, humidity and rainfall from
+  Open-Meteo (free, no API key). Soil values still need measuring.
+* **Recommendation history.** Each crop recommendation is saved in the browser
+  (not on the server) and can be downloaded as CSV from the crop page.
+* **Local-language answers.** The chat page has a language selector; `ask` and
+  `chat` take a `language` of `en`, `twi`, `fante`, `ewe` or `ga`. The model is
+  told to answer in that language, primed with a few aligned example sentences
+  (`data/language_primers.json`, built by `scripts/build_language_primers.py`
+  from a parallel corpus). Note: `llama3.2:3b` has only partial coverage of
+  these low-resource languages, so non-English answers are approximate.
+
+### Robustness
+
+* Ollama calls now have a connect/read timeout and retry transient failures
+  (`FARMWISE_OLLAMA_TIMEOUT`, `FARMWISE_OLLAMA_MAX_RETRIES`, …).
+* A per-IP rate limit guards the AI and ingest endpoints
+  (`FARMWISE_RATE_LIMIT`, default 40 requests / `FARMWISE_RATE_LIMIT_WINDOW`
+  seconds; set the limit to 0 to disable). Rejected requests return 429 with a
+  `Retry-After` header.
+* Each request is logged (client, method, path, status, duration) to the console
+  and a rotating file under `FARMWISE_LOG_DIR` (default `logs/webapp.log`).
+
 ## Growing the knowledge base
 
 The assistant only knows what it has read. The `/knowledge` page lets you grow

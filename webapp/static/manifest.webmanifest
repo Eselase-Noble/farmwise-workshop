@@ -1,0 +1,24 @@
+{
+  "name": "FarmWise — smart farming assistant",
+  "short_name": "FarmWise",
+  "description": "Crop recommendations and a farming Q&A assistant, built for Ghana.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#061037",
+  "theme_color": "#061037",
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -9,11 +9,15 @@ error instead of a raw connection traceback — important for a live demo.
 
 from __future__ import annotations
 
+import logging
+import time
 from typing import Optional
 
 import requests
 
 from farmwise import config
+
+logger = logging.getLogger("farmwise.llm")
 
 
 class OllamaError(RuntimeError):
@@ -40,31 +44,56 @@ _MODEL_HINT = (
 )
 
 
-def _post(path: str, payload: dict, host: Optional[str] = None, timeout: int = 120) -> dict:
-    """POST JSON to the Ollama server and return the decoded response."""
+def _post(path: str, payload: dict, host: Optional[str] = None, timeout: Optional[int] = None) -> dict:
+    """POST JSON to the Ollama server and return the decoded response.
+
+    A transient failure — the server still warming up, a dropped connection, or a
+    5xx — is retried up to ``config.OLLAMA_MAX_RETRIES`` times with a short linear
+    backoff. Generation has no side effects, so a retry only ever repeats work.
+    A model-not-found (404) or a timeout are not transient, so they fail fast.
+    """
     base = host or config.OLLAMA_HOST
     url = f"{base.rstrip('/')}{path}"
-    try:
-        resp = requests.post(url, json=payload, timeout=timeout)
-    except requests.exceptions.ConnectionError as exc:
-        raise OllamaNotRunningError(_NOT_RUNNING_HINT.format(host=base)) from exc
-    except requests.exceptions.Timeout as exc:
-        raise OllamaError(f"Ollama request timed out after {timeout}s.") from exc
+    read_timeout = timeout if timeout is not None else config.OLLAMA_TIMEOUT
+    timeouts = (config.OLLAMA_CONNECT_TIMEOUT, read_timeout)
 
-    if resp.status_code == 404:
-        model = payload.get("model", "?")
-        raise OllamaModelNotFoundError(_MODEL_HINT.format(model=model))
-    if not resp.ok:
-        raise OllamaError(f"Ollama returned {resp.status_code}: {resp.text[:300]}")
+    attempts = config.OLLAMA_MAX_RETRIES + 1
+    for attempt in range(1, attempts + 1):
+        try:
+            resp = requests.post(url, json=payload, timeout=timeouts)
+        except requests.exceptions.ConnectionError as exc:
+            if attempt < attempts:
+                logger.warning("Ollama connection failed (attempt %d/%d), retrying", attempt, attempts)
+                time.sleep(config.OLLAMA_RETRY_BACKOFF * attempt)
+                continue
+            raise OllamaNotRunningError(_NOT_RUNNING_HINT.format(host=base)) from exc
+        except requests.exceptions.Timeout as exc:
+            raise OllamaError(
+                f"Ollama request timed out after {read_timeout}s. The model may be "
+                "loading for the first time; try again in a moment."
+            ) from exc
 
-    data = resp.json()
-    # Ollama reports model-not-found via a JSON 'error' field too.
-    if isinstance(data, dict) and data.get("error"):
-        err = data["error"]
-        if "not found" in err.lower():
-            raise OllamaModelNotFoundError(_MODEL_HINT.format(model=payload.get("model", "?")))
-        raise OllamaError(f"Ollama error: {err}")
-    return data
+        if resp.status_code == 404:
+            model = payload.get("model", "?")
+            raise OllamaModelNotFoundError(_MODEL_HINT.format(model=model))
+        if resp.status_code >= 500 and attempt < attempts:
+            logger.warning("Ollama returned %d (attempt %d/%d), retrying", resp.status_code, attempt, attempts)
+            time.sleep(config.OLLAMA_RETRY_BACKOFF * attempt)
+            continue
+        if not resp.ok:
+            raise OllamaError(f"Ollama returned {resp.status_code}: {resp.text[:300]}")
+
+        data = resp.json()
+        # Ollama reports model-not-found via a JSON 'error' field too.
+        if isinstance(data, dict) and data.get("error"):
+            err = data["error"]
+            if "not found" in err.lower():
+                raise OllamaModelNotFoundError(_MODEL_HINT.format(model=payload.get("model", "?")))
+            raise OllamaError(f"Ollama error: {err}")
+        return data
+
+    # Unreachable: the loop either returns or raises on the final attempt.
+    raise OllamaError("Ollama request failed.")
 
 
 def is_ollama_running(host: Optional[str] = None) -> bool:
@@ -107,17 +136,21 @@ def generate(
     model: Optional[str] = None,
     max_tokens: Optional[int] = None,
     temperature: Optional[float] = None,
+    repeat_penalty: Optional[float] = None,
     host: Optional[str] = None,
 ) -> str:
     """Generate a completion for a single prompt. Returns the text response."""
+    options = {
+        "num_predict": max_tokens if max_tokens is not None else config.MAX_TOKENS,
+        "temperature": temperature if temperature is not None else config.LLM_TEMPERATURE,
+    }
+    if repeat_penalty is not None:
+        options["repeat_penalty"] = repeat_penalty
     payload = {
         "model": model or config.LLM_MODEL,
         "prompt": prompt,
         "stream": False,
-        "options": {
-            "num_predict": max_tokens if max_tokens is not None else config.MAX_TOKENS,
-            "temperature": temperature if temperature is not None else config.LLM_TEMPERATURE,
-        },
+        "options": options,
     }
     if system:
         payload["system"] = system

@@ -145,6 +145,7 @@ form.addEventListener("submit", async (e) => {
   try {
     const pred = await postJSON("/api/predict", body);
     render(pred, body);
+    saveHistoryEntry(body, pred);
   } catch (err) {
     showError(err.message);
   } finally {
@@ -241,3 +242,161 @@ function showError(msg) {
   ood.hidden = false;
   ood.innerHTML = `<span class="error">${msg}</span>`;
 }
+
+// --- weather auto-fill ------------------------------------------------------
+// Pull temperature, humidity and rainfall for a place (or the device location)
+// and drop them into the matching sliders.
+const weatherBtn = document.getElementById("weather-btn");
+const weatherGeo = document.getElementById("weather-geo");
+const weatherLoc = document.getElementById("weather-loc");
+const weatherNote = document.getElementById("weather-note");
+
+function setWeatherNote(msg, kind) {
+  if (!weatherNote) return;
+  weatherNote.hidden = !msg;
+  weatherNote.textContent = msg || "";
+  weatherNote.className = "weather-note" + (kind ? " is-" + kind : "");
+}
+
+// Move a slider to a value (clamped to its range) and update its readout.
+function setSlider(feature, value) {
+  if (value === null || value === undefined) return false;
+  const input = form.querySelector(`input[name="${feature}"]`);
+  if (!input) return false;
+  const v = Math.max(parseFloat(input.min), Math.min(parseFloat(input.max), value));
+  input.value = v;
+  input.dispatchEvent(new Event("input"));
+  return true;
+}
+
+async function applyWeather(query) {
+  setWeatherNote("Fetching weather…", "busy");
+  [weatherBtn, weatherGeo].forEach((b) => b && (b.disabled = true));
+  try {
+    const resp = await fetch("/api/weather?" + query);
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.detail || `Could not fetch weather (${resp.status})`);
+    setSlider("temperature", data.temperature);
+    setSlider("humidity", data.humidity);
+    const gotRain = setSlider("rainfall", data.rainfall);
+    const place = data.location || "your location";
+    setWeatherNote(
+      `Filled from ${place}: ${data.temperature}°C, ${data.humidity}% humidity` +
+        (gotRain ? `, ${data.rainfall} mm rain/month (12-month average).` : ". Rainfall unavailable — set it by hand.") +
+        " Soil values (N, P, K, pH) still need measuring.",
+      "ok"
+    );
+  } catch (err) {
+    setWeatherNote(err.message, "error");
+  } finally {
+    [weatherBtn, weatherGeo].forEach((b) => b && (b.disabled = false));
+  }
+}
+
+if (weatherBtn) {
+  weatherBtn.addEventListener("click", () => {
+    const loc = (weatherLoc.value || "").trim();
+    if (!loc) { setWeatherNote("Type a town or region first, or use 📍 for your location.", "error"); return; }
+    applyWeather("location=" + encodeURIComponent(loc));
+  });
+}
+if (weatherLoc) {
+  weatherLoc.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); weatherBtn.click(); }
+  });
+}
+if (weatherGeo) {
+  weatherGeo.addEventListener("click", () => {
+    if (!navigator.geolocation) { setWeatherNote("This browser cannot share a location.", "error"); return; }
+    setWeatherNote("Getting your location…", "busy");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => applyWeather(`latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}`),
+      () => setWeatherNote("Could not get your location. Type a town instead.", "error"),
+      { timeout: 10000 }
+    );
+  });
+}
+
+// --- recommendation history (saved in the browser, exportable as CSV) -------
+const HISTORY_KEY = "farmwise_crop_history";
+const HISTORY_MAX = 50;
+const histSection = document.getElementById("history-section");
+const histList = document.getElementById("history-list");
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch (_) { return []; }
+}
+
+function saveHistoryEntry(inputs, pred) {
+  const entry = {
+    at: new Date().toISOString(),
+    crop: pred.crop,
+    confidence: pred.confidence,
+    out_of_distribution: !!pred.out_of_distribution,
+    inputs: inputs,
+  };
+  const items = loadHistory();
+  items.unshift(entry);
+  if (items.length > HISTORY_MAX) items.length = HISTORY_MAX;
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items)); } catch (_) {}
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!histSection || !histList) return;
+  const items = loadHistory();
+  histSection.hidden = items.length === 0;
+  histList.innerHTML = items
+    .map((e) => {
+      const when = new Date(e.at).toLocaleString();
+      const pct = (e.confidence * 100).toFixed(0) + "%";
+      const flag = e.out_of_distribution ? '<span class="chip chip--warn">out of range</span>' : "";
+      const fields = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
+        .map((f) => `${f} ${e.inputs[f]}`).join(" · ");
+      return (
+        `<div class="hist-row"><div class="hist-row__main">` +
+        `<span class="hist-row__crop">${e.crop}</span> ` +
+        `<span class="hist-row__conf">${pct}</span> ${flag}` +
+        `<div class="hist-row__fields">${fields}</div></div>` +
+        `<time class="hist-row__time">${when}</time></div>`
+      );
+    })
+    .join("");
+}
+
+function historyToCSV(items) {
+  const cols = ["at", "crop", "confidence", "out_of_distribution",
+    "N", "P", "K", "temperature", "humidity", "ph", "rainfall"];
+  const esc = (v) => {
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const rows = items.map((e) =>
+    cols.map((c) => esc(c in e.inputs ? e.inputs[c] : e[c])).join(",")
+  );
+  return [cols.join(","), ...rows].join("\n");
+}
+
+const histCsvBtn = document.getElementById("history-csv");
+const histClearBtn = document.getElementById("history-clear");
+if (histCsvBtn) {
+  histCsvBtn.addEventListener("click", () => {
+    const items = loadHistory();
+    if (!items.length) return;
+    const blob = new Blob([historyToCSV(items)], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "farmwise-recommendations.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+if (histClearBtn) {
+  histClearBtn.addEventListener("click", () => {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+  });
+}
+renderHistory();

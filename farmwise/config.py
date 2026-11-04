@@ -55,6 +55,15 @@ OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 LLM_MODEL: str = os.getenv("FARMWISE_LLM_MODEL", "llama3.2:3b")
 EMBEDDING_MODEL: str = os.getenv("FARMWISE_EMBEDDING_MODEL", "nomic-embed-text")
 
+# How long to wait on an Ollama call, and how hard to retry a transient failure
+# (the server still warming up, a dropped connection, a 5xx). Generation has no
+# side effects, so a retry is safe. The first token can lag on a cold model, so
+# the read timeout is generous.
+OLLAMA_TIMEOUT: int = int(os.getenv("FARMWISE_OLLAMA_TIMEOUT", "120"))        # seconds
+OLLAMA_CONNECT_TIMEOUT: int = int(os.getenv("FARMWISE_OLLAMA_CONNECT_TIMEOUT", "5"))
+OLLAMA_MAX_RETRIES: int = int(os.getenv("FARMWISE_OLLAMA_MAX_RETRIES", "2"))  # extra attempts
+OLLAMA_RETRY_BACKOFF: float = float(os.getenv("FARMWISE_OLLAMA_RETRY_BACKOFF", "0.8"))  # seconds
+
 # --------------------------------------------------------------------------
 # RAG parameters  (kept small for fast responses on a laptop)
 # --------------------------------------------------------------------------
@@ -72,6 +81,17 @@ MIN_RELEVANCE_SCORE: float = float(os.getenv("FARMWISE_MIN_SCORE", "0.62"))
 # --------------------------------------------------------------------------
 MAX_UPLOAD_MB: int = int(os.getenv("FARMWISE_MAX_UPLOAD_MB", "25"))
 MAX_DOWNLOAD_MB: int = int(os.getenv("FARMWISE_MAX_DOWNLOAD_MB", "50"))
+
+# Per-client (per-IP) rate limit on the AI/ingest endpoints, over a fixed window.
+# 0 disables it. Kept generous so a demo audience sharing one network is not
+# blocked, but a public ngrok URL cannot be hammered.
+RATE_LIMIT_REQUESTS: int = int(os.getenv("FARMWISE_RATE_LIMIT", "40"))
+RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("FARMWISE_RATE_LIMIT_WINDOW", "60"))
+
+# Where the web app writes its request/error log. Empty disables file logging
+# (console logging always stays on).
+LOG_DIR: Path = _env_path("FARMWISE_LOG_DIR", PROJECT_ROOT / "logs")
+LOG_LEVEL: str = os.getenv("FARMWISE_LOG_LEVEL", "INFO").upper()
 # With a token set, changing the knowledge base requires it. With no token, only
 # requests made directly on this machine may change it.
 ADMIN_TOKEN: str = os.getenv("FARMWISE_ADMIN_TOKEN", "")

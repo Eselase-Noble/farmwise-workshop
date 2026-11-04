@@ -4,21 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FarmWise — a smart farming assistant</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="apple-touch-icon" href="/static/favicon.svg" />
+  <link rel="manifest" href="/static/manifest.webmanifest" />
+  <meta name="theme-color" content="#061037" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=3" />
 </head>
 <body>
 
   <header class="nav">
     <div class="wrap nav__row">
       <a class="brand" href="/" aria-label="FarmWise home">
-        <svg class="brand__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <path d="M16 30V15" stroke="#061037" stroke-width="2.6" stroke-linecap="round"/>
-          <path d="M16 18C16 12.5 11.5 8 5 8c0 5.5 4.5 10 11 10Z" fill="#01a7c2"/>
-          <path d="M16 15c0-4.4 4-8.5 10-8.5 0 4.4-4 8.5-10 8.5Z" fill="#1f9d55"/>
-        </svg>
+        <img class="brand__mark" src="/static/logo.svg" alt="" width="34" height="34" />
         <span class="brand__name">Farm<span>Wise</span></span>
       </a>
       <nav class="nav__links" aria-label="Primary">
@@ -141,11 +141,7 @@
     <div class="wrap footer__row">
       <div>
         <div class="footer__brand">
-          <svg class="brand__mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <path d="M16 30V15" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
-            <path d="M16 18C16 12.5 11.5 8 5 8c0 5.5 4.5 10 11 10Z" fill="#01a7c2"/>
-            <path d="M16 15c0-4.4 4-8.5 10-8.5 0 4.4-4 8.5-10 8.5Z" fill="#1f9d55"/>
-          </svg>
+          <img class="brand__mark" src="/static/logo.svg" alt="" width="34" height="34" />
           <span class="brand__name">Farm<span>Wise</span></span>
         </div>
         <p class="footer__note">FarmWise runs on local AI models. Recommendations are a starting
@@ -160,6 +156,7 @@
     </div>
   </footer>
 
-  <script src="/static/nav.js"></script>
+  <script src="/static/app.js?v=3" defer></script>
+  <script src="/static/nav.js?v=3"></script>
 </body>
 </html>

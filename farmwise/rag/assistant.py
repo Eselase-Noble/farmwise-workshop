@@ -16,6 +16,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Optional
 
 from farmwise import config
+from farmwise.i18n import DEFAULT_LANGUAGE, language_directive, normalise_language
 from farmwise.llm import client as llm_client
 from farmwise.rag.embeddings import embed_query
 from farmwise.rag.vector_store import SearchResult, VectorStore
@@ -89,6 +90,21 @@ RAG_SYSTEM_PROMPT = (
 )
 
 
+def _with_language(system_prompt: str, language: str | None) -> str:
+    """Append a language directive to a system prompt, or return it unchanged."""
+    directive = language_directive(language)
+    return f"{system_prompt}\n\n{directive}" if directive else system_prompt
+
+
+# llama3.2:3b tends to loop on low-resource languages; a repetition penalty on
+# non-English generation curbs the runaway repeats. English is left untouched.
+_NON_ENGLISH_REPEAT_PENALTY = 1.3
+
+
+def _repeat_penalty(language: str | None) -> Optional[float]:
+    return None if normalise_language(language) == DEFAULT_LANGUAGE else _NON_ENGLISH_REPEAT_PENALTY
+
+
 def build_prompt(question: str, results: list[SearchResult]) -> str:
     """Assemble the RAG prompt from retrieved chunks (printed in the demo)."""
     context_blocks = []
@@ -139,6 +155,7 @@ def _grounded_answer(
     model_name: str,
     max_tokens: Optional[int],
     history: str = "",
+    language: str | None = None,
 ) -> RagAnswer:
     """Answer from ``results``. A refusal never lists sources, as none were used."""
     if not results:
@@ -150,7 +167,8 @@ def _grounded_answer(
     if history:
         prompt = f"Conversation so far:\n{history}\n\n{prompt}"
     answer = llm_client.generate(
-        prompt, system=RAG_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
+        prompt, system=_with_language(RAG_SYSTEM_PROMPT, language),
+        model=model_name, max_tokens=max_tokens, repeat_penalty=_repeat_penalty(language),
     )
 
     sources = [] if _is_refusal(answer) else [
@@ -174,11 +192,13 @@ def ask_without_rag(
     *,
     model: Optional[str] = None,
     max_tokens: Optional[int] = None,
+    language: str | None = None,
 ) -> RagAnswer:
     """Answer from the LLM's own knowledge — no documents, no retrieval."""
     model_name = model or config.LLM_MODEL
     answer = llm_client.generate(
-        question, system=PLAIN_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
+        question, system=_with_language(PLAIN_SYSTEM_PROMPT, language),
+        model=model_name, max_tokens=max_tokens, repeat_penalty=_repeat_penalty(language),
     )
     return RagAnswer(
         question=question,
@@ -196,6 +216,7 @@ def ask(
     top_k: Optional[int] = None,
     model: Optional[str] = None,
     max_tokens: Optional[int] = None,
+    language: str | None = None,
 ) -> RagAnswer:
     """Answer the question with RAG: retrieve, ground, cite.
 
@@ -208,7 +229,9 @@ def ask(
     model_name = model or config.LLM_MODEL
 
     results = _retrieve([question], store, k)
-    return _grounded_answer(question, results, model_name=model_name, max_tokens=max_tokens)
+    return _grounded_answer(
+        question, results, model_name=model_name, max_tokens=max_tokens, language=language
+    )
 
 
 def chat(
@@ -219,6 +242,7 @@ def chat(
     top_k: Optional[int] = None,
     model: Optional[str] = None,
     max_tokens: Optional[int] = None,
+    language: str | None = None,
 ) -> RagAnswer:
     """Conversational assistant with the recent history in mind.
 
@@ -243,7 +267,8 @@ def chat(
     if not use_rag:
         prompt = f"Conversation so far:\n{history}\n\nReply as FarmWise to the farmer's last message."
         answer = llm_client.generate(
-            prompt, system=PLAIN_SYSTEM_PROMPT, model=model_name, max_tokens=max_tokens
+            prompt, system=_with_language(PLAIN_SYSTEM_PROMPT, language),
+            model=model_name, max_tokens=max_tokens, repeat_penalty=_repeat_penalty(language),
         )
         return RagAnswer(
             question=latest, answer=answer, used_context=False, sources=[], model=model_name
@@ -264,5 +289,6 @@ def chat(
         for m in messages[:-1][-6:]
     )
     return _grounded_answer(
-        latest, results, model_name=model_name, max_tokens=max_tokens, history=earlier
+        latest, results, model_name=model_name, max_tokens=max_tokens,
+        history=earlier, language=language,
     )
