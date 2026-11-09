@@ -20,6 +20,8 @@ The files named `sample_*.md` are **SAMPLE – FOR TESTING ONLY, NOT AGRONOMIC
 ADVICE**. They exist so the RAG pipeline can be built and tested before real
 guides are added. Each one carries that disclaimer in its header.
 
-**Delete or replace the sample files with real guides before presenting.**
+**Delete or replace the sample files with real guides before presenting.** The
+Session 2 web app already leaves them out of the index unless
+`FARMWISE_INCLUDE_SAMPLES=1` is set.
 They contain simplified, illustrative content and must never be presented as
 real farming advice.

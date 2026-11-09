@@ -55,3 +55,13 @@ def trained_model_paths(crop_df, tmp_path):
     _load_model_and_metadata.cache_clear()
     yield model_path, metadata_path
     _load_model_and_metadata.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_answer_cache():
+    """Answers are cached per process; keep each test independent."""
+    from farmwise.rag.assistant import clear_answer_cache
+
+    clear_answer_cache()
+    yield
+    clear_answer_cache()

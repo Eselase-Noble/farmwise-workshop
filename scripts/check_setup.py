@@ -121,7 +121,7 @@ def _check_model_version() -> bool:
 
 def _warn_about_sample_guides() -> None:
     samples = sorted(config.GUIDES_DIR.glob("sample_*"))
-    if samples:
+    if samples and config.INCLUDE_SAMPLE_GUIDES:
         names = ", ".join(path.name for path in samples)
         print(f"{WARN} sample guides are not real agronomic advice: {names}")
 

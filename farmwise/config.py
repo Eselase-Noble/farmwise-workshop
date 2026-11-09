@@ -78,11 +78,15 @@ CHUNK_SIZE: int = int(os.getenv("FARMWISE_CHUNK_SIZE", "800"))          # charac
 CHUNK_OVERLAP: int = int(os.getenv("FARMWISE_CHUNK_OVERLAP", "150"))    # characters
 # Chunks retrieved per question. On a CPU-only laptop the model reads the prompt at
 # roughly 40 tokens/s, so every passage adds about 6 s before the first word. With
-# 4 all five DEMO_QA.md questions were still answered correctly (5/5, as with 8),
-# in about 31 s on average instead of about 78 s.
-TOP_K: int = int(os.getenv("FARMWISE_TOP_K", "4"))
+# 3 all five DEMO_QA.md questions were still answered correctly (5/5, as with 8),
+# in about 24 s on average instead of about 78 s. Raise it on a faster machine for
+# fuller multi-crop answers.
+TOP_K: int = int(os.getenv("FARMWISE_TOP_K", "3"))
 MAX_TOKENS: int = int(os.getenv("FARMWISE_MAX_TOKENS", "256"))         # generation cap
 LLM_TEMPERATURE: float = float(os.getenv("FARMWISE_LLM_TEMPERATURE", "0.2"))
+# The sample_* guides are placeholders, not real agronomic advice. Session 2 leaves
+# them out of the knowledge base; set this to 1 to include them (Session 1 demos).
+INCLUDE_SAMPLE_GUIDES: bool = os.getenv("FARMWISE_INCLUDE_SAMPLES", "0") == "1"
 # Chunks scoring below this cosine similarity are treated as not relevant. Tuned
 # for nomic-embed-text: covered questions scored 0.70+, off-topic ones up to 0.60.
 MIN_RELEVANCE_SCORE: float = float(os.getenv("FARMWISE_MIN_SCORE", "0.62"))

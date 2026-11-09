@@ -126,6 +126,9 @@ async function streamAnswer(useRag, lang) {
           raw += evt.text;
           bubble.textContent = raw;
           log.scrollTop = log.scrollHeight;
+        } else if (evt.type === "status") {
+          // Others are being answered first; say so instead of showing dots.
+          if (!started) bubble.textContent = evt.message;
         } else if (evt.type === "done") {
           final = evt;
         } else if (evt.type === "error") {

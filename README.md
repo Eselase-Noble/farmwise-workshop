@@ -104,11 +104,13 @@ Two helpers make curation easier:
   credible. Remove only takes it out of the index: an uploaded file stays in
   `data/guides/` and comes back on the next rebuild, so delete it there as well.
 
-Use credible sources for anything you demonstrate. The index is built from
-United States Department of Agriculture, World Bank, MoFA (Agriculture in Ghana
-Facts and Figures), FAO and MoFA-IFPRI material. Government, FAO, MoFA and
-research institute documents are what belong here, not blog posts or paywalled
-aggregators.
+Use credible sources for anything you demonstrate. The index is built mainly
+from United States Department of Agriculture, World Bank, MoFA (Agriculture in
+Ghana Facts and Figures), Ghana Statistical Service, FAO, MoFA-IFPRI, GIPC and
+GEPA material. One tertiary source is included on purpose: the Wikipedia article
+on agriculture in Ghana, as a plain-text overview of crops and regions. If a
+figure matters, check it against the primary sources. Blog posts and paywalled
+aggregators do not belong here.
 
 The panel lists every source currently indexed and its chunk count, so you can
 see the knowledge base grow. Behind the panel are three endpoints:
@@ -132,9 +134,14 @@ part of Ghana?" returns "I don't know based on the farming guides provided" with
 only the sample guides loaded. Add a public rice guide through the panel and the
 same question is answered, with the new source cited.
 
-Note: Session 2 uses a default `top_k` of 4 (Session 1 used 3), because real guides are
-larger than the Session 1 samples and the useful passage is often not in the top
-three. Tune it with `FARMWISE_TOP_K`.
+Note: the default `top_k` is 3. On a CPU-only laptop every extra passage adds
+about 6 seconds before the answer starts, and 3 still answered all five
+`DEMO_QA.md` questions correctly. On a faster machine raise it with
+`FARMWISE_TOP_K` (for example 5 to 8) for fuller multi-crop answers.
+
+The `sample_*` guides are placeholders, not real advice, so Session 2 leaves them
+out of the knowledge base. Set `FARMWISE_INCLUDE_SAMPLES=1` to include them, for
+example to rerun the Session 1 notebooks.
 
 ## Answers, relevance and follow-ups
 
@@ -184,8 +191,9 @@ command (Ollama must be running):
 python scripts/rebuild_kb.py --reset
 ```
 
-That loads the sample guides and then ingests every credible source in the
-manifest (USDA, GSS, World Bank, MoFA, FAO, MoFA-IFPRI). Add a line to the
+That indexes `data/guides/` (without the sample guides) and then ingests every
+source in the manifest (USDA, GSS, World Bank, MoFA, FAO, MoFA-IFPRI, GIPC, GEPA
+and the Wikipedia overview). Add a line to the
 manifest to make a new source part of the reproducible set. The script exits
 with an error if any source fails, so a partial rebuild is easy to spot.
 `scripts/build_index.py` only indexes `data/guides/`, which removes the sources

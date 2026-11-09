@@ -41,7 +41,14 @@ from farmwise import config
 from farmwise.i18n import LANGUAGES, normalise_language
 from farmwise.llm.client import OllamaError, is_ollama_running
 from farmwise.ml.predict import CropFeatures, ModelNotFoundError, predict_crop
-from farmwise.rag.assistant import ask, ask_without_rag, chat, chat_stream, warm_up
+from farmwise.rag.assistant import (
+    ask,
+    ask_without_rag,
+    chat,
+    chat_stream,
+    clear_answer_cache,
+    warm_up,
+)
 from farmwise.rag.indexer import index_document, index_url
 from farmwise.rag.loader import SUPPORTED_SUFFIXES, load_file
 from farmwise.rag.vector_store import ChromaVectorStore
@@ -582,6 +589,7 @@ def remove_source(inp: RemoveIn) -> dict:
         removed = ChromaVectorStore().delete_source(inp.source)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Could not remove source: {exc}")
+    clear_answer_cache()
     return {"removed": removed, **sources()}
 
 
@@ -598,6 +606,7 @@ def ingest_url(inp: UrlIn) -> dict:
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Could not ingest URL: {exc}")
+    clear_answer_cache()
     return {
         "source": inp.url,
         "pages_added": report.documents,
@@ -615,6 +624,7 @@ def _index_and_keep(staged: Path, dest: Path) -> int:
     """
     report = index_document(ChromaVectorStore(), load_file(staged))
     os.replace(staged, dest)
+    clear_answer_cache()
     return report.chunks
 
 

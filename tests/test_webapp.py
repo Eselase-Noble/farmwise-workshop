@@ -564,3 +564,123 @@ def test_keep_warm_loop_survives_ollama_being_down(monkeypatch):
     monkeypatch.setattr(main, "warm_up", down)
     monkeypatch.setattr(config, "KEEP_WARM_SECONDS", 0)
     main._keep_models_warm(threading.Event())  # must not raise
+
+
+# --- sample guides, tidying, repeat answers, queue status ------------------
+
+def test_sample_guides_are_left_out_unless_asked_for(tmp_path, monkeypatch):
+    from farmwise.rag.loader import load_guides
+
+    (tmp_path / "sample_maize.md").write_text("Placeholder.")
+    (tmp_path / "real.md").write_text("Real guide.")
+    monkeypatch.setattr(config, "INCLUDE_SAMPLE_GUIDES", False)
+    assert [d.source for d in load_guides(tmp_path)] == ["real.md"]
+    monkeypatch.setattr(config, "INCLUDE_SAMPLE_GUIDES", True)
+    assert [d.source for d in load_guides(tmp_path)] == ["real.md", "sample_maize.md"]
+
+
+@pytest.mark.parametrize(
+    "raw, tidy",
+    [
+        (
+            "According to the top five regions listed in Figure 4 of the Facts & Figures "
+            "report, the Ashanti Region produces the most maize.",
+            "The Ashanti Region produces the most maize.",
+        ),
+        ("Ashanti leads [2]. Eastern is second [1, 3].", "Ashanti leads. Eastern is second."),
+        (
+            "Maize is key. Based on the passages provided, yields rose in 2020.",
+            "Maize is key. Yields rose in 2020.",
+        ),
+        # Ordinary uses are left alone.
+        ("According to farmers, rains came late.", "According to farmers, rains came late."),
+        ("Plant at the start of the rains.", "Plant at the start of the rains."),
+    ],
+)
+def test_tidy_answer(raw, tidy):
+    assert assistant.tidy_answer(raw) == tidy
+
+
+def stream_events(client, question, **extra):
+    resp = client.post(
+        "/api/chat/stream",
+        json={"messages": [{"role": "user", "content": question}], **extra},
+    )
+    events = []
+    for line in resp.text.splitlines():
+        if line.startswith("data:"):
+            events.append(__import__("json").loads(line[5:]))
+    return events
+
+
+def test_repeated_question_is_answered_from_the_cache(env, local_client, monkeypatch):
+    add_source("Maize likes nitrogen.", "maize.md")
+    calls = []
+
+    def fake_stream(*args, **kwargs):
+        calls.append(1)
+        yield "According to the guide data, maize likes nitrogen [1]."
+
+    monkeypatch.setattr(assistant.llm_client, "generate_stream", fake_stream)
+    first = stream_events(local_client, "Does maize need nitrogen?")
+    second = stream_events(local_client, "does  maize need nitrogen?")
+    assert len(calls) == 1
+    assert first[-1]["answer"] == second[-1]["answer"] == "Maize likes nitrogen."
+    assert [s["source"] for s in second[-1]["sources"]] == ["maize.md"]
+
+
+def test_changing_the_knowledge_base_clears_the_cache(env, local_client, monkeypatch):
+    add_source("Maize likes nitrogen.", "maize.md")
+    calls = []
+
+    def fake_stream(*args, **kwargs):
+        calls.append(1)
+        yield "Maize likes nitrogen."
+
+    monkeypatch.setattr(assistant.llm_client, "generate_stream", fake_stream)
+    stream_events(local_client, "Does maize need nitrogen?")
+    local_client.post("/api/ingest/file", files={"file": ("more.md", b"Maize likes rain.")})
+    local_client.post("/api/sources/remove", json={"source": "more.md"})
+    stream_events(local_client, "Does maize need nitrogen?")
+    assert len(calls) == 2
+
+
+def test_follow_up_questions_are_not_cached(env, local_client, monkeypatch):
+    add_source("Maize likes nitrogen.", "maize.md")
+    calls = []
+
+    def fake_stream(*args, **kwargs):
+        calls.append(1)
+        yield "Maize likes nitrogen."
+
+    monkeypatch.setattr(assistant.llm_client, "generate_stream", fake_stream)
+    messages = [
+        {"role": "user", "content": "Tell me about maize."},
+        {"role": "assistant", "content": "It is a cereal."},
+        {"role": "user", "content": "Does maize need nitrogen?"},
+    ]
+    for _ in range(2):
+        local_client.post("/api/chat/stream", json={"messages": messages})
+    assert len(calls) == 2
+
+
+def test_busy_model_sends_a_queue_status_first(env, local_client, monkeypatch):
+    add_source("Maize likes nitrogen.", "maize.md")
+    monkeypatch.setattr(
+        assistant.llm_client, "generate_stream", lambda *a, **k: iter(["Maize likes nitrogen."])
+    )
+    monkeypatch.setattr(assistant, "_in_progress", 2)  # two answers already running
+    events = stream_events(local_client, "Does maize need nitrogen?")
+    assert events[0]["type"] == "status"
+    assert events[0]["ahead"] == 2
+    assert assistant._in_progress == 2  # its own slot was released
+
+
+def test_idle_model_sends_no_queue_status(env, local_client, monkeypatch):
+    add_source("Maize likes nitrogen.", "maize.md")
+    monkeypatch.setattr(
+        assistant.llm_client, "generate_stream", lambda *a, **k: iter(["Maize likes nitrogen."])
+    )
+    events = stream_events(local_client, "Does maize need nitrogen?")
+    assert [e["type"] for e in events] == ["token", "done"]
+    assert assistant._in_progress == 0

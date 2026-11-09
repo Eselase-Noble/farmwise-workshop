@@ -12,6 +12,9 @@ endpoints (a "raw chatbot" API and a "RAG" API) with the same response model.
 
 from __future__ import annotations
 
+import re
+import threading
+from collections import OrderedDict
 from dataclasses import asdict, dataclass, field
 from typing import Optional
 
@@ -128,6 +131,103 @@ def get_default_store() -> VectorStore:
     return ChromaVectorStore()
 
 
+# --- answer tidying --------------------------------------------------------
+
+# Small models sometimes ignore the "no citation markers" rule. Sources are shown
+# separately, so drop markers like [2] and openers like "According to Figure 4 of
+# the report," that point at passages the reader cannot see.
+_MARKER = re.compile(r"\s*\[\d+(?:\s*[,-]\s*\d+)*\]")
+_POINTER_WORDS = (
+    r"(?:passages?|context|figures?|tables?|guides?|reports?|data|documents?|sources?|"
+    r"statistics|survey|facts|text|information)"
+)
+_OPENER = re.compile(
+    r"(^|(?<=[.!?]\s)|(?<=\n))"
+    r"(?:according to|based on|as (?:stated|shown|mentioned|noted) in)\b"
+    r"[^.,\n]{0,160}?\b" + _POINTER_WORDS + r"\b[^.,\n]{0,160}?,\s*",
+    re.IGNORECASE,
+)
+
+
+def tidy_answer(answer: str) -> str:
+    """Remove citation markers and "according to the passage" style openers."""
+    text = _MARKER.sub("", answer)
+    text = _OPENER.sub(lambda m: m.group(1), text)
+    # Re-capitalise a sentence whose opener was removed.
+    text = re.sub(r"(^|[.!?]\s+|\n)([a-z])", lambda m: m.group(1) + m.group(2).upper(), text)
+    return re.sub(r"[ \t]{2,}", " ", text).strip()
+
+
+# --- repeated questions ----------------------------------------------------
+
+# A first grounded question (no earlier turns) gets the same answer each time while
+# the knowledge base is unchanged, so recent ones are kept and repeats answered at
+# once. The key includes the index size, and the web app clears the cache whenever
+# it changes the knowledge base.
+_CACHE_SIZE = 128
+_answer_cache: "OrderedDict[tuple, dict]" = OrderedDict()
+_cache_lock = threading.Lock()
+
+
+def clear_answer_cache() -> None:
+    with _cache_lock:
+        _answer_cache.clear()
+
+
+def _cache_key(question: str, store: VectorStore, k: int, model_name: str, language) -> tuple:
+    normalised = " ".join(question.lower().split())
+    return (
+        normalised, language or DEFAULT_LANGUAGE, model_name, k,
+        config.MIN_RELEVANCE_SCORE, store.count(),
+    )
+
+
+def _cache_get(key: tuple) -> Optional[RagAnswer]:
+    with _cache_lock:
+        if key not in _answer_cache:
+            return None
+        _answer_cache.move_to_end(key)
+        return _answer_cache[key]
+
+
+def _cache_put(key: tuple, answer: RagAnswer) -> None:
+    with _cache_lock:
+        _answer_cache[key] = answer
+        _answer_cache.move_to_end(key)
+        while len(_answer_cache) > _CACHE_SIZE:
+            _answer_cache.popitem(last=False)
+
+
+# --- waiting for the model -------------------------------------------------
+
+# The laptop answers one question at a time. Count the answers in progress so a
+# waiting user is told how many are ahead instead of watching dots.
+_in_progress = 0
+_in_progress_lock = threading.Lock()
+
+
+def _tokens_with_queue_status(stream_factory):
+    """Yield a status event if others are being answered, then the model's tokens."""
+    global _in_progress
+    with _in_progress_lock:
+        ahead = _in_progress
+        _in_progress += 1
+    try:
+        if ahead:
+            noun = "question" if ahead == 1 else "questions"
+            yield {
+                "type": "status",
+                "ahead": ahead,
+                "message": f"FarmWise is busy: {ahead} {noun} ahead of yours. "
+                           "Each takes about 20 to 30 seconds.",
+            }
+        for delta in stream_factory():
+            yield {"type": "token", "text": delta}
+    finally:
+        with _in_progress_lock:
+            _in_progress -= 1
+
+
 # --- retrieval and grounding -----------------------------------------------
 
 def _retrieve(queries: list[str], store: VectorStore, top_k: int) -> list[SearchResult]:
@@ -170,7 +270,11 @@ def _grounded_answer(
         prompt, system=_with_language(RAG_SYSTEM_PROMPT, language),
         model=model_name, max_tokens=max_tokens, repeat_penalty=_repeat_penalty(language),
     )
+    return _finish(question, answer, results, model_name)
 
+
+def _finish(question: str, answer: str, results: list[SearchResult], model_name: str) -> RagAnswer:
+    """Tidy a grounded answer and attach its sources (none for a refusal)."""
     sources = [] if _is_refusal(answer) else [
         SourceChunk(
             source=r.metadata.get("source", "?"),
@@ -181,7 +285,8 @@ def _grounded_answer(
         for r in results
     ]
     return RagAnswer(
-        question=question, answer=answer, used_context=True, sources=sources, model=model_name
+        question=question, answer=tidy_answer(answer), used_context=True,
+        sources=sources, model=model_name,
     )
 
 
@@ -238,10 +343,17 @@ def ask(
     k = top_k if top_k is not None else config.TOP_K
     model_name = model or config.LLM_MODEL
 
+    key = _cache_key(question, store, k, model_name, language) if max_tokens is None else None
+    if key and (cached := _cache_get(key)):
+        return cached
+
     results = _retrieve([question], store, k)
-    return _grounded_answer(
+    answer = _grounded_answer(
         question, results, model_name=model_name, max_tokens=max_tokens, language=language
     )
+    if key:
+        _cache_put(key, answer)
+    return answer
 
 
 def chat(
@@ -346,17 +458,29 @@ def chat_stream(
         if not use_rag:
             prompt = f"Conversation so far:\n{history}\n\nReply as FarmWise to the farmer's last message."
             parts: list[str] = []
-            for delta in llm_client.generate_stream(
+            for event in _tokens_with_queue_status(lambda: llm_client.generate_stream(
                 prompt, system=_with_language(PLAIN_SYSTEM_PROMPT, language),
                 model=model_name, max_tokens=max_tokens, repeat_penalty=_repeat_penalty(language),
-            ):
-                parts.append(delta)
-                yield {"type": "token", "text": delta}
+            )):
+                if event["type"] == "token":
+                    parts.append(event["text"])
+                yield event
             yield _done("".join(parts).strip(), False, [])
             return
 
         store = store or get_default_store()
         k = top_k if top_k is not None else config.TOP_K
+
+        # Only a first question can be answered from the cache: with earlier
+        # turns the conversation shapes the answer.
+        key = None
+        if len(user_turns) == 1 and max_tokens is None:
+            key = _cache_key(latest, store, k, model_name, language)
+            cached = _cache_get(key)
+            if cached:
+                yield {"type": "token", "text": cached.answer}
+                yield _done(cached.answer, True, cached.sources)
+                return
         queries = [latest]
         if len(user_turns) > 1:
             queries.append(f"{user_turns[-2]['content']} {latest}")
@@ -376,22 +500,17 @@ def chat_stream(
             prompt = f"Conversation so far:\n{earlier}\n\n{prompt}"
 
         parts = []
-        for delta in llm_client.generate_stream(
+        for event in _tokens_with_queue_status(lambda: llm_client.generate_stream(
             prompt, system=_with_language(RAG_SYSTEM_PROMPT, language),
             model=model_name, max_tokens=max_tokens, repeat_penalty=_repeat_penalty(language),
-        ):
-            parts.append(delta)
-            yield {"type": "token", "text": delta}
-        answer = "".join(parts).strip()
-        sources = [] if _is_refusal(answer) else [
-            SourceChunk(
-                source=r.metadata.get("source", "?"),
-                chunk_index=int(r.metadata.get("chunk_index", -1)),
-                text=r.document,
-                score=r.score,
-            )
-            for r in results
-        ]
-        yield _done(answer, True, sources)
+        )):
+            if event["type"] == "token":
+                parts.append(event["text"])
+            yield event
+        # The page swaps in this tidied answer when the stream ends.
+        final = _finish(latest, "".join(parts).strip(), results, model_name)
+        if key:
+            _cache_put(key, final)
+        yield _done(final.answer, True, final.sources)
     except llm_client.OllamaError as exc:
         yield {"type": "error", "detail": str(exc)}

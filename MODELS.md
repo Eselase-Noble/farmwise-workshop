@@ -67,10 +67,13 @@ Notes:
 - `nomic-embed-text` must be the **same** on both machines — if you ever swap the
   embedding model, rebuild the index, because embeddings from different models are
   not comparable.
-- Default retrieval is `TOP_K=4` (see `farmwise/config.py`). On a CPU-only laptop
-  the prompt is the slow part (about 40 tokens/s), and 4 passages answered all five
-  `DEMO_QA.md` questions correctly at about 2.5x the speed of 8. Raise it with
+- Default retrieval is `TOP_K=3` (see `farmwise/config.py`). On a CPU-only laptop
+  the prompt is the slow part (about 40 tokens/s), and 3 passages answered all five
+  `DEMO_QA.md` questions correctly at about 3x the speed of 8. Raise it with
   `FARMWISE_TOP_K` on a faster machine.
+- The same first question is answered instantly the second time (the answer is
+  remembered until the knowledge base changes), and when several people ask at
+  once the chat tells each how many questions are ahead of theirs.
 
 ## Latency on a laptop
 

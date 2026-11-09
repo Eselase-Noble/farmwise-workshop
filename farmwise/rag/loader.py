@@ -321,6 +321,8 @@ def load_guides(directory: Optional[Path | str] = None) -> list[Document]:
             continue
         if path.name.lower() == "readme.md":
             continue
+        if path.name.startswith("sample_") and not config.INCLUDE_SAMPLE_GUIDES:
+            continue  # placeholders, not real advice (FARMWISE_INCLUDE_SAMPLES=1 keeps them)
         try:
             doc = load_file(path)
         except Exception as exc:  # one unreadable file should not stop a rebuild
