@@ -22,8 +22,10 @@ import os
 import re
 import secrets
 import tempfile
+import threading
 import time
 from collections import deque
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal, Optional
 from urllib.parse import urlparse
@@ -39,7 +41,7 @@ from farmwise import config
 from farmwise.i18n import LANGUAGES, normalise_language
 from farmwise.llm.client import OllamaError, is_ollama_running
 from farmwise.ml.predict import CropFeatures, ModelNotFoundError, predict_crop
-from farmwise.rag.assistant import ask, ask_without_rag, chat, chat_stream
+from farmwise.rag.assistant import ask, ask_without_rag, chat, chat_stream, warm_up
 from farmwise.rag.indexer import index_document, index_url
 from farmwise.rag.loader import SUPPORTED_SUFFIXES, load_file
 from farmwise.rag.vector_store import ChromaVectorStore
@@ -245,7 +247,33 @@ class RequestLogMiddleware:
 
 _configure_logging()
 
-app = FastAPI(title="FarmWise", description="Smart farming assistant (Session 2 web app)")
+def _keep_models_warm(stop: threading.Event) -> None:
+    """Warm the models now, then touch them regularly until the app stops."""
+    log = logging.getLogger("farmwise.warmup")
+    while True:
+        started = time.monotonic()
+        try:
+            warm_up()
+            log.info("models warm (%.1fs)", time.monotonic() - started)
+        except Exception as exc:  # Ollama may still be starting; try again later
+            log.warning("could not warm the models: %s", exc)
+        if config.KEEP_WARM_SECONDS <= 0 or stop.wait(config.KEEP_WARM_SECONDS):
+            return
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    stop = threading.Event()
+    threading.Thread(target=_keep_models_warm, args=(stop,), daemon=True, name="keep-warm").start()
+    yield
+    stop.set()
+
+
+app = FastAPI(
+    title="FarmWise",
+    description="Smart farming assistant (Session 2 web app)",
+    lifespan=lifespan,
+)
 # Starlette makes the last-added middleware the outermost. Adding the body-size
 # guard first and the request log last puts logging on the outside (so a 429 or
 # 500 is still logged), the rate limiter next, and the body-size guard closest

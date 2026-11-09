@@ -132,7 +132,7 @@ part of Ghana?" returns "I don't know based on the farming guides provided" with
 only the sample guides loaded. Add a public rice guide through the panel and the
 same question is answered, with the new source cited.
 
-Note: Session 2 raises the default `top_k` from 3 to 5, because real guides are
+Note: Session 2 uses a default `top_k` of 4 (Session 1 used 3), because real guides are
 larger than the Session 1 samples and the useful passage is often not in the top
 three. Tune it with `FARMWISE_TOP_K`.
 

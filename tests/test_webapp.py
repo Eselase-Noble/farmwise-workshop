@@ -522,3 +522,45 @@ def test_search_result_scores_below_the_threshold_are_dropped(monkeypatch):
     monkeypatch.setattr(config, "MIN_RELEVANCE_SCORE", 0.5)
     results = assistant._retrieve(["question"], Store(), top_k=5)
     assert [r.id for r in results] == ["a"]
+
+
+# --- latency: keeping the models warm --------------------------------------
+
+def test_generate_asks_ollama_to_keep_the_model_loaded(monkeypatch):
+    from farmwise.llm import client
+
+    sent = {}
+
+    def fake_post(path, payload, **kwargs):
+        sent.update(payload)
+        return {"response": "ok"}
+
+    monkeypatch.setattr(client, "_post", fake_post)
+    monkeypatch.setattr(config, "OLLAMA_KEEP_ALIVE", "2h")
+    client.generate("hi")
+    assert sent["keep_alive"] == "2h"
+
+
+def test_keep_warm_loop_warms_once_when_disabled(monkeypatch):
+    import threading
+
+    from webapp import main
+
+    calls = []
+    monkeypatch.setattr(main, "warm_up", lambda: calls.append(1))
+    monkeypatch.setattr(config, "KEEP_WARM_SECONDS", 0)
+    main._keep_models_warm(threading.Event())
+    assert calls == [1]
+
+
+def test_keep_warm_loop_survives_ollama_being_down(monkeypatch):
+    import threading
+
+    from webapp import main
+
+    def down():
+        raise OllamaError("not up yet")
+
+    monkeypatch.setattr(main, "warm_up", down)
+    monkeypatch.setattr(config, "KEEP_WARM_SECONDS", 0)
+    main._keep_models_warm(threading.Event())  # must not raise

@@ -42,7 +42,7 @@ def embed_texts(
     for text in texts:
         try:
             resp = requests.post(
-                url, json={"model": model_name, "prompt": text}, timeout=120
+                url, json={"model": model_name, "prompt": text, "keep_alive": config.OLLAMA_KEEP_ALIVE}, timeout=120
             )
         except requests.exceptions.ConnectionError as exc:
             raise OllamaNotRunningError(_NOT_RUNNING_HINT.format(host=base)) from exc

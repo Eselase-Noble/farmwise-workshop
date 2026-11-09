@@ -67,5 +67,22 @@ Notes:
 - `nomic-embed-text` must be the **same** on both machines — if you ever swap the
   embedding model, rebuild the index, because embeddings from different models are
   not comparable.
-- Default retrieval is `TOP_K=8` (see `farmwise/config.py`); multi-crop questions
-  need the extra recall. Override with `FARMWISE_TOP_K`.
+- Default retrieval is `TOP_K=4` (see `farmwise/config.py`). On a CPU-only laptop
+  the prompt is the slow part (about 40 tokens/s), and 4 passages answered all five
+  `DEMO_QA.md` questions correctly at about 2.5x the speed of 8. Raise it with
+  `FARMWISE_TOP_K` on a faster machine.
+
+## Latency on a laptop
+
+- The web app loads both models when it starts and touches them every 4 minutes
+  (`FARMWISE_KEEP_WARM_SECONDS`), and asks Ollama to keep them loaded for 2 hours
+  (`FARMWISE_OLLAMA_KEEP_ALIVE`). A cold or swapped-out model took over a minute to
+  read its first prompt.
+- Free memory before presenting: close IDEs and other heavy apps. The two models
+  need about 3 GB of RAM, and if the system swaps them out every answer slows down.
+- Plug in the charger. The `performance` power profile
+  (`powerprofilesctl set performance`) gave about 15% more speed in testing.
+- Start the app a few minutes before going live and ask one question, so the first
+  answer the audience sees is a warm one.
+- The Intel Arc GPU through Ollama's Vulkan backend was tried and is not usable
+  with the current driver (it crashed and produced garbage), so stay on CPU.

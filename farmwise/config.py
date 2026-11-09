@@ -64,12 +64,23 @@ OLLAMA_CONNECT_TIMEOUT: int = int(os.getenv("FARMWISE_OLLAMA_CONNECT_TIMEOUT", "
 OLLAMA_MAX_RETRIES: int = int(os.getenv("FARMWISE_OLLAMA_MAX_RETRIES", "2"))  # extra attempts
 OLLAMA_RETRY_BACKOFF: float = float(os.getenv("FARMWISE_OLLAMA_RETRY_BACKOFF", "0.8"))  # seconds
 
+# Latency. On a CPU-only laptop a cold or swapped-out model takes over a minute to
+# read its first prompt, against about 4 s once it is warm in RAM. So ask Ollama to
+# keep the models loaded, and have the web app warm them at startup and touch them
+# every few minutes so the operating system does not page them out.
+OLLAMA_KEEP_ALIVE: str = os.getenv("FARMWISE_OLLAMA_KEEP_ALIVE", "2h")
+KEEP_WARM_SECONDS: int = int(os.getenv("FARMWISE_KEEP_WARM_SECONDS", "240"))  # 0 disables
+
 # --------------------------------------------------------------------------
 # RAG parameters  (kept small for fast responses on a laptop)
 # --------------------------------------------------------------------------
 CHUNK_SIZE: int = int(os.getenv("FARMWISE_CHUNK_SIZE", "800"))          # characters
 CHUNK_OVERLAP: int = int(os.getenv("FARMWISE_CHUNK_OVERLAP", "150"))    # characters
-TOP_K: int = int(os.getenv("FARMWISE_TOP_K", "8"))                      # chunks retrieved (real, larger docs; multi-crop questions need the extra recall)
+# Chunks retrieved per question. On a CPU-only laptop the model reads the prompt at
+# roughly 40 tokens/s, so every passage adds about 6 s before the first word. With
+# 4 all five DEMO_QA.md questions were still answered correctly (5/5, as with 8),
+# in about 31 s on average instead of about 78 s.
+TOP_K: int = int(os.getenv("FARMWISE_TOP_K", "4"))
 MAX_TOKENS: int = int(os.getenv("FARMWISE_MAX_TOKENS", "256"))         # generation cap
 LLM_TEMPERATURE: float = float(os.getenv("FARMWISE_LLM_TEMPERATURE", "0.2"))
 # Chunks scoring below this cosine similarity are treated as not relevant. Tuned

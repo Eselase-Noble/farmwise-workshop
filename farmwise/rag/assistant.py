@@ -187,6 +187,16 @@ def _grounded_answer(
 
 # --- entry points ----------------------------------------------------------
 
+def warm_up() -> None:
+    """Load both models into memory and prime the grounded system prompt.
+
+    Ollama reuses the work done on a prompt's opening, so running the RAG system
+    prompt once makes the first real question as fast as the later ones.
+    """
+    embed_query("warm up")
+    llm_client.generate("Reply with OK.", system=RAG_SYSTEM_PROMPT, max_tokens=1)
+
+
 def ask_without_rag(
     question: str,
     *,

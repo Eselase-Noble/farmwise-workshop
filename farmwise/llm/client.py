@@ -151,6 +151,7 @@ def generate(
         "model": model or config.LLM_MODEL,
         "prompt": prompt,
         "stream": False,
+        "keep_alive": config.OLLAMA_KEEP_ALIVE,
         "options": options,
     }
     if system:
@@ -181,7 +182,13 @@ def generate_stream(
     }
     if repeat_penalty is not None:
         options["repeat_penalty"] = repeat_penalty
-    payload = {"model": model or config.LLM_MODEL, "prompt": prompt, "stream": True, "options": options}
+    payload = {
+        "model": model or config.LLM_MODEL,
+        "prompt": prompt,
+        "stream": True,
+        "keep_alive": config.OLLAMA_KEEP_ALIVE,
+        "options": options,
+    }
     if system:
         payload["system"] = system
 
@@ -231,6 +238,7 @@ def chat(
         "model": model or config.LLM_MODEL,
         "messages": messages,
         "stream": False,
+        "keep_alive": config.OLLAMA_KEEP_ALIVE,
         "options": {
             "num_predict": max_tokens if max_tokens is not None else config.MAX_TOKENS,
             "temperature": temperature if temperature is not None else config.LLM_TEMPERATURE,
