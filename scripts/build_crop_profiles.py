@@ -6,7 +6,10 @@ becomes text the RAG assistant can retrieve. For each crop it summarises the
 typical soil and weather conditions (the ranges the model actually learned), so
 the assistant can explain what a crop needs and why a recommendation was made.
 
-Writes data/guides/crop_profiles.md, which the normal index build then ingests.
+Writes data/reference/crop_profiles.md. It is kept out of data/guides/ on purpose:
+the dataset is not Ghanaian (it is generally taken to reflect Indian conditions),
+and the knowledge base holds Ghana-based sources only. The crop page still uses
+data/crop_conditions.json for its ranges.
 
     python scripts/build_crop_profiles.py
 """
@@ -112,8 +115,8 @@ def main() -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
-    config.GUIDES_DIR.mkdir(parents=True, exist_ok=True)
-    md_out = config.GUIDES_DIR / "crop_profiles.md"
+    md_out = config.DATA_DIR / "reference" / "crop_profiles.md"
+    md_out.parent.mkdir(parents=True, exist_ok=True)
     md_out.write_text(md)
     print(f"Wrote {md_out} ({len(md)} chars)")
 

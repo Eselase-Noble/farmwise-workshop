@@ -5,9 +5,12 @@
 #
 #     python scripts/rebuild_kb.py --reset
 #
-# These are public government, UN and research sources, plus one tertiary
-# overview (Wikipedia) kept for its plain-text crop and region figures; check any
-# figure that matters against the primary sources. The curated
+# Every source is about Ghana: Ghanaian government bodies (MoFA, GSS, COCOBOD,
+# GIPC, GEPA), research done in Ghana (CSIR, IITA, IFPRI, University of Ghana)
+# and international reports on Ghana, plus one tertiary overview (Wikipedia)
+# kept for its plain-text crop and region figures; check any figure that matters
+# against the primary sources. Region-wide or non-Ghanaian material is left out
+# on purpose. The curated
 # knowledge base lives here (in git) rather than in the local chroma/ index, so
 # it can be reproduced on any machine.
 
@@ -44,3 +47,48 @@ https://www.gepaghana.org/import/ghana-product/cassava-from-ghana/
 
 # Ghana Export Promotion Authority (GEPA) — Cocoa key sector
 https://www.gepaghana.org/market-information/ghana-key-sectors/?sector=cocoa
+
+# --- Practical farming guides and research (all Ghana-based) ---
+
+# IPA with CSIR-SARI — Community Extension Agent Handbook for Maize Production
+# in Northern Ghana (2015)
+https://es.poverty-action.org/sites/default/files/Community%20Extension%20Agent%20Maize%20Handbook.pdf
+
+# IITA — Guide for Sustainable Maize Production in Ghana (2025): spacing, seed rate
+https://cgspace.cgiar.org/server/api/core/bitstreams/40fbec24-8696-4f7d-b2d1-f6ade042ac7a/content
+
+# IFDC FERARI — Yield responses of maize to fertilizers in Ghana (policy brief)
+https://ifdc.org/wp-content/uploads/2020/09/FERARI-Policy-Brief-2-Yield-Responses-of-Maize-to-Fertilizers-in-Ghana.pdf
+
+# CGIAR — Multisite trials bridging research and farming in Northern Ghana
+https://cgspace.cgiar.org/server/api/core/bitstreams/bbe1ae75-e6d9-4e80-b06f-80f165f550a2/content
+
+# SAIRLA — Sustainably intensifying agriculture in Ghana: Planting for Food and
+# Jobs (policy brief, 2019)
+https://assets.publishing.service.gov.uk/media/5e8f1d3a86650c2dce9426dd/Ghana-FISP-policy-brief_with-references-FINAL-1.pdf
+
+# University of Ghana — Control strategies for maize after fall armyworm
+# infestation (thesis)
+https://ugspace.ug.edu.gh/server/api/core/bitstreams/31d53f7e-e754-441f-8b77-4a51a0ab2bab/content
+
+# JIRCAS with CSIR — Rice cultivation manual for rain-fed lowlands, based on a
+# 2009-2012 study in Ghana (sawah system)
+https://www.jircas.go.jp/sites/default/files/publication/manual_guideline/manual_guideline-_-_9.pdf
+
+# IFPRI — Tackling post-harvest loss in Ghana: cost-effectiveness of technologies
+https://cgspace.cgiar.org/server/api/core/bitstreams/e3023b9c-6154-495c-8c1b-4b535af8327a/content
+
+# Ghana News Agency — Hermetic storage, Ghana's untapped solution to post-harvest
+# losses (2026)
+https://gna.org.gh/2026/07/hermetic-storage-technology-ghanas-untapped-solution-to-post-harvest-losses/
+
+# COCOBOD / Ghana Standards Authority — National Implementation Guide for
+# GS ARS 1000, Part 1: cocoa farmer and farmer-group requirements (2023)
+https://cocobod.gh/resource_files/national-implementation-guide-for-gs-ars-1000-part-1.pdf
+
+# COCOBOD / Ghana Standards Authority — GS ARS 1000 Part 2: cocoa quality and
+# traceability (2023)
+https://cocobod.gh/resource_files/national-implementation-guide-for-gs-ars-1000-part-2.pdf
+
+# Ghana News Agency — COCOBOD rehabilitation of swollen-shoot affected farms (2020)
+https://gna.org.gh/2020/08/cocobod-embarks-upon-massive-rehabilitation-of-moribund-cocoa-farms/

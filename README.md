@@ -107,7 +107,12 @@ Two helpers make curation easier:
 Use credible sources for anything you demonstrate. The index is built mainly
 from United States Department of Agriculture, World Bank, MoFA (Agriculture in
 Ghana Facts and Figures), Ghana Statistical Service, FAO, MoFA-IFPRI, GIPC and
-GEPA material. One tertiary source is included on purpose: the Wikipedia article
+GEPA material, plus practical guides and research done in Ghana: the IITA maize
+guide, the IPA/CSIR-SARI maize handbook, IFDC fertilizer trials, the JIRCAS
+lowland rice manual, IFPRI post-harvest work, COCOBOD's cocoa standard guides and
+a University of Ghana fall armyworm study. Every source is about Ghana;
+region-wide or non-Ghanaian material is left out on purpose. One tertiary source
+is included on purpose: the Wikipedia article
 on agriculture in Ghana, as a plain-text overview of crops and regions. If a
 figure matters, check it against the primary sources. Blog posts and paywalled
 aggregators do not belong here.
