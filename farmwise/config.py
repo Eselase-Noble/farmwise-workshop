@@ -69,7 +69,7 @@ OLLAMA_RETRY_BACKOFF: float = float(os.getenv("FARMWISE_OLLAMA_RETRY_BACKOFF", "
 # --------------------------------------------------------------------------
 CHUNK_SIZE: int = int(os.getenv("FARMWISE_CHUNK_SIZE", "800"))          # characters
 CHUNK_OVERLAP: int = int(os.getenv("FARMWISE_CHUNK_OVERLAP", "150"))    # characters
-TOP_K: int = int(os.getenv("FARMWISE_TOP_K", "5"))                      # chunks retrieved (Session 2 uses real, larger docs)
+TOP_K: int = int(os.getenv("FARMWISE_TOP_K", "8"))                      # chunks retrieved (real, larger docs; multi-crop questions need the extra recall)
 MAX_TOKENS: int = int(os.getenv("FARMWISE_MAX_TOKENS", "256"))         # generation cap
 LLM_TEMPERATURE: float = float(os.getenv("FARMWISE_LLM_TEMPERATURE", "0.2"))
 # Chunks scoring below this cosine similarity are treated as not relevant. Tuned
