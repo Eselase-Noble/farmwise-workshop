@@ -103,6 +103,14 @@ MAX_DOWNLOAD_MB: int = int(os.getenv("FARMWISE_MAX_DOWNLOAD_MB", "50"))
 RATE_LIMIT_REQUESTS: int = int(os.getenv("FARMWISE_RATE_LIMIT", "40"))
 RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("FARMWISE_RATE_LIMIT_WINDOW", "60"))
 
+# Comma-separated list of origins allowed to call the API from a browser (CORS),
+# for integrating the backend into another front-end on a different origin. Empty
+# disables CORS (same-origin only). Use "*" to allow any origin. Server-to-server
+# callers (no browser) are unaffected by this.
+CORS_ALLOW_ORIGINS: list[str] = [
+    o.strip() for o in os.getenv("FARMWISE_CORS_ORIGINS", "").split(",") if o.strip()
+]
+
 # Where the web app writes its request/error log. Empty disables file logging
 # (console logging always stays on).
 LOG_DIR: Path = _env_path("FARMWISE_LOG_DIR", PROJECT_ROOT / "logs")

@@ -289,6 +289,19 @@ app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestLogMiddleware)
 
+# Allow another front-end (on a different origin) to call the API from a browser.
+# Off unless FARMWISE_CORS_ORIGINS is set; the admin/ingest routes stay protected
+# by their own Origin check in require_admin.
+if config.CORS_ALLOW_ORIGINS:
+    from fastapi.middleware.cors import CORSMiddleware
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=config.CORS_ALLOW_ORIGINS,
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+    )
+
 
 @app.exception_handler(RequestValidationError)
 async def readable_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
